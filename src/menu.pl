@@ -1,7 +1,6 @@
 
 :- use_module(library(lists)).
 
-% Display the main menu
 main_menu :-
     nl,nl,
     write('+------------------------------------------------------------------------+'),nl,

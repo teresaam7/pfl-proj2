@@ -24,42 +24,10 @@ game_loop(GameState, Player1, Player2) :-
         game_loop(NewGameState, Player1, Player2)
     ).
 
-display_game(state(Board, Player)) :-
-    nl,
-    write('           '),
-    (Player = white -> write('Player O Playing') ; write('Player X Playing')), nl,
-    write('                                    '), nl,
-    write('   | 1 | 2 | 3 | 4 | 5 | 6 | 7 |'), nl,
-    write('---|---|---|---|---|---|---|---|'), nl,
-    print_board(Board, 1).
+start_game(Player1, Player2) :-
+    initial_state(GameState),
+    game_loop(GameState, Player1, Player2).
 
-print_board([], _).
-print_board([Row|Rows], N) :-
-    header_line(Letter, N),
-    write(' '), write(Letter), write(' | '),
-    print_row(Row), nl,
-    write('___|___|___|___|___|___|___|___|'), nl,
-    N1 is N + 1,
-    print_board(Rows, N1).
-
-print_row([]).
-print_row([Cell|Cells]) :-
-    (Cell = empty -> write('.') ;
-     Cell = white -> write('o') ;
-     Cell = black -> write('v') ;
-     Cell = 8 -> write('8') ;  % Stack branca
-     Cell = x -> write('X')), % Stack preta
-    write(' | '),
-    print_row(Cells).
-
-
-header_line('1', 1).
-header_line('2', 2).
-header_line('3', 3).
-header_line('4', 4).
-header_line('5', 5).
-header_line('6', 6).
-header_line('7', 7).
 
 choose_move(GameState, human, Move) :-
     nl, write('Enter your move (Row, Col): '),
@@ -159,20 +127,25 @@ game_over(state(Board, _), Winner) :-
     Winner = none).
 
 line_of_stacks(Board, Winner) :-
-    (Winner = black ; Winner = white),  % Checa para ambos os jogadores
-    findall(Line, (check_lines(Board, Winner, Line)), LineRows),
-    findall(Line, (check_columns(Board, Winner, Line)), LineCols),
-    findall(Line, (check_diagonals(Board, Winner, Line)), LineDiags),
-    append(LineRows, LineCols, TempLines),
-    append(TempLines, LineDiags, Lines),
-    include(all_stacks(Board, Winner), Lines, ValidLines),
-    ValidLines \= [].
-
-all_stacks(Board, Winner, [(Row1, Col1), (Row2, Col2), (Row3, Col3)]) :-
     stack_symbol(Winner, Stack),
-    nth1(Row1, Board, Row1Data), nth1(Col1, Row1Data, Stack),
-    nth1(Row2, Board, Row2Data), nth1(Col2, Row2Data, Stack),
-    nth1(Row3, Board, Row3Data), nth1(Col3, Row3Data, Stack).
+    (check_lines_stacks(Board, Stack);
+     check_columns_stacks(Board, Stack);
+     check_diagonals_stacks(Board, Stack)).
+
+check_lines_stacks(Board, Stack) :-
+    member(Row, Board),
+    append(_, [Stack, Stack, Stack|_], Row).
+
+check_columns_stacks(Board, Stack) :-
+    transpose(Board, TransposedBoard),
+    member(Column, TransposedBoard),
+    append(_, [Stack, Stack, Stack|_], Column).
+
+check_diagonals_stacks(Board, Stack) :-
+    diagonal(Board, Diagonals),
+    member(Diagonal, Diagonals),
+    append(_, [Stack, Stack, Stack|_], Diagonal).
+
 
 stack_symbol(white, 8).
 stack_symbol(black, x).
