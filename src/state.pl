@@ -1,14 +1,7 @@
 
-% Start the game with given players
-start_game(Player1, Player2) :-
-    initial_state(GameState),
-    game_loop(GameState, Player1, Player2).
-
-% Define initial state (empty board and starting player)
 initial_state(state(Board, white)) :-
     empty_board(Board).
 
-% Create an empty 7x7 board
 empty_board(Board) :-
     length(Board, 7),
     maplist(empty_row, Board).
@@ -17,7 +10,6 @@ empty_row(Row) :-
     length(Row, 7),
     maplist(=(empty), Row).
 
-% Game loop
 game_loop(GameState, Player1, Player2) :-
     display_game(GameState),
     game_over(GameState, Winner),
@@ -27,11 +19,11 @@ game_loop(GameState, Player1, Player2) :-
         GameState = state(_, CurrentPlayer),
         (CurrentPlayer = white -> CurrentPlayerType = Player1 ; CurrentPlayerType = Player2),
         choose_move(GameState, CurrentPlayerType, Move),
-        move(GameState, Move, NewGameState),
+        move(GameState, Move, TempGameState),
+        handle_line_of_three(TempGameState, NewGameState),
         game_loop(NewGameState, Player1, Player2)
     ).
 
-% Display the game state
 display_game(state(Board, Player)) :-
     nl,
     write('           '),
@@ -40,7 +32,6 @@ display_game(state(Board, Player)) :-
     write('   | 1 | 2 | 3 | 4 | 5 | 6 | 7 |'), nl,
     write('---|---|---|---|---|---|---|---|'), nl,
     print_board(Board, 1).
-
 
 print_board([], _).
 print_board([Row|Rows], N) :-
@@ -51,10 +42,13 @@ print_board([Row|Rows], N) :-
     N1 is N + 1,
     print_board(Rows, N1).
 
-
 print_row([]).
 print_row([Cell|Cells]) :-
-    (Cell = empty -> write('.') ; (Cell = white -> write('O') ; write('X'))),
+    (Cell = empty -> write('.') ;
+     Cell = white -> write('o') ;
+     Cell = black -> write('v') ;
+     Cell = 8 -> write('8') ;  % Stack branca
+     Cell = x -> write('X')), % Stack preta
     write(' | '),
     print_row(Cells).
 
@@ -67,56 +61,28 @@ header_line('5', 5).
 header_line('6', 6).
 header_line('7', 7).
 
-% Determine a move (based on player type)
 choose_move(GameState, human, Move) :-
     nl, write('Enter your move (Row, Col): '),
     read((Row, Col)),
     Move = move(Row, Col).
 
-choose_move(GameState, computer(1), Move) :-
-    valid_moves(GameState, Moves),
-    random_member(Move, Moves).
-
-% Custom random_member/2 implementation
-random_member(Element, List) :-
-    length(List, Length),
-    Length > 0,  % Ensure the list is not empty
-    random_between(1, Length, Index),
-    nth1(Index, List, Element).
-
-
-% Custom random_between/3 implementation using system time for randomness
-random_between(Low, High, Value) :-
-    statistics(runtime, [Time|_]),  % Get the runtime in milliseconds
-    Range is High - Low + 1,
-    Value is Low + Time mod Range.  % Use modulus to generate a value in the range
-
-
-choose_move(GameState, computer(2), Move) :-
-    valid_moves(GameState, Moves),
-    best_move(GameState, Moves, Move).
-
-% Validate and execute a move
 move(state(Board, Player), move(Row, Col), state(NewBoard, NextPlayer)) :-
     valid_moves(state(Board, Player), Moves),
     member(move(Row, Col), Moves),
     apply_move(Board, Row, Col, Player, NewBoard),
     next_player(Player, NextPlayer).
 
-% Apply the move to the board
 apply_move(Board, Row, Col, Player, NewBoard) :-
     nth1(Row, Board, OldRow),
     replace_nth(Col, OldRow, Player, NewRow),
     replace_nth(Row, Board, NewRow, NewBoard).
 
-% Replace the Nth element in a list
 replace_nth(1, [_|Rest], Elem, [Elem|Rest]).
 replace_nth(N, [X|Xs], Elem, [X|Ys]) :-
     N > 1,
     N1 is N - 1,
     replace_nth(N1, Xs, Elem, Ys).
 
-% Determine valid moves
 valid_moves(state(Board, _), Moves) :-
     findall(move(Row, Col), valid_position(Board, Row, Col), Moves).
 
@@ -125,34 +91,91 @@ valid_position(Board, Row, Col) :-
     nth1(Col, BoardRow, Cell),
     Cell = empty.
 
-% Check if the game is over
+handle_line_of_three(state(Board, Player), state(NewBoard, Player)) :-
+    find_lines_of_three(Board, Player, Lines),
+    Lines \= [],
+    nl, write('Line of three detected! Choose coordinates to remove and stack:'), nl,
+    display_game(state(Board, Player)),
+    choose_two_to_remove(Lines, ToRemove, StackPos),
+    update_board(Board, ToRemove, StackPos, Player, NewBoard).
+handle_line_of_three(GameState, GameState).
+
+find_lines_of_three(Board, Player, Lines) :-
+    findall(Line, (check_lines(Board, Player, Line)), LineRows),
+    findall(Line, (check_columns(Board, Player, Line)), LineCols),
+    findall(Line, (check_diagonals(Board, Player, Line)), LineDiags),
+    append(LineRows, LineCols, TempLines),
+    append(TempLines, LineDiags, Lines).
+
+check_lines(Board, Player, Line) :-
+    nth1(RowIdx, Board, Row),
+    check_line(Row, RowIdx, Player, Line).
+
+check_columns(Board, Player, Line) :-
+    transpose(Board, TransposedBoard),
+    findall(Line, (nth1(ColIdx, TransposedBoard, Col), check_line(Col, ColIdx, Player, Line)), Lines),
+    member(Line, Lines).
+
+check_diagonals(Board, Player, Line) :-
+    diagonal(Board, Diagonals),
+    member(Diagonal, Diagonals),
+    check_line(Diagonal, _, Player, Line).
+
+check_line(Line, Index, Player, [(Index, Col1), (Index, Col2), (Index, Col3)]) :-
+    append(_, [Player, Player, Player|_], Line),
+    nth1(Col1, Line, Player),
+    nth1(Col2, Line, Player),
+    nth1(Col3, Line, Player).
+
+choose_two_to_remove(_, ToRemove, StackPos) :-
+    write('Enter two positions to remove (e.g., [(R1, C1), (R2, C2)]): '),
+    read(ToRemove),
+    write('Enter position to stack (e.g., (Rs, Cs)): '),
+    read(StackPos).
+
+update_board(Board, ToRemove, StackPos, Player, NewBoard) :-
+    remove_pieces(Board, ToRemove, TempBoard),
+    add_stack(TempBoard, StackPos, Player, NewBoard).
+
+remove_pieces(Board, [], Board).
+remove_pieces(Board, [(Row, Col)|Rest], NewBoard) :-
+    nth1(Row, Board, OldRow),
+    replace_nth(Col, OldRow, empty, NewRow),
+    replace_nth(Row, Board, NewRow, TempBoard),
+    remove_pieces(TempBoard, Rest, NewBoard).
+
+add_stack(Board, (Row, Col), white, NewBoard) :-
+    nth1(Row, Board, OldRow),
+    replace_nth(Col, OldRow, 8, NewRow), 
+    replace_nth(Row, Board, NewRow, NewBoard).
+add_stack(Board, (Row, Col), black, NewBoard) :-
+    nth1(Row, Board, OldRow),
+    replace_nth(Col, OldRow, x, NewRow),
+    replace_nth(Row, Board, NewRow, NewBoard).
+
 game_over(state(Board, _), Winner) :-
     (line_of_stacks(Board, Winner) -> true ;
     board_full(Board) -> Winner = draw ;
     Winner = none).
 
 line_of_stacks(Board, Winner) :-
-    (check_lines(Board, Winner) ;        % Check rows
-     check_columns(Board, Winner) ;     % Check columns
-     check_diagonals(Board, Winner)).   % Check diagonals
+    (Winner = black ; Winner = white),  % Checa para ambos os jogadores
+    findall(Line, (check_lines(Board, Winner, Line)), LineRows),
+    findall(Line, (check_columns(Board, Winner, Line)), LineCols),
+    findall(Line, (check_diagonals(Board, Winner, Line)), LineDiags),
+    append(LineRows, LineCols, TempLines),
+    append(TempLines, LineDiags, Lines),
+    include(all_stacks(Board, Winner), Lines, ValidLines),
+    ValidLines \= [].
 
-check_lines(Board, Winner) :-
-    member(Row, Board),
-    check_line(Row, Winner).
+all_stacks(Board, Winner, [(Row1, Col1), (Row2, Col2), (Row3, Col3)]) :-
+    stack_symbol(Winner, Stack),
+    nth1(Row1, Board, Row1Data), nth1(Col1, Row1Data, Stack),
+    nth1(Row2, Board, Row2Data), nth1(Col2, Row2Data, Stack),
+    nth1(Row3, Board, Row3Data), nth1(Col3, Row3Data, Stack).
 
-check_columns(Board, Winner) :-
-    transpose(Board, TransposedBoard),
-    check_lines(TransposedBoard, Winner).
-
-check_diagonals(Board, Winner) :-
-    diagonal(Board, Diagonals),
-    member(Diagonal, Diagonals),
-    check_line(Diagonal, Winner).
-
-check_line(Line, Winner) :-
-    append(_, [X,X,X|_], Line),
-    X \= empty,
-    Winner = X.
+stack_symbol(white, 8).
+stack_symbol(black, x).
 
 board_full(Board) :-
     \+ (member(Row, Board), member(empty, Row)).
