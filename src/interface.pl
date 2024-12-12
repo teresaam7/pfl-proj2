@@ -21,8 +21,8 @@ print_row([Cell|Cells]) :-
     (Cell = empty -> write('.') ;
      Cell = white -> write('o') ;
      Cell = black -> write('v') ;
-     Cell = 8 -> write('8') ;  % Stack branca
-     Cell = x -> write('X')), % Stack preta
+     Cell = 8 -> write('8') ;  % white stack 
+     Cell = x -> write('X')), % black stack 
     write(' | '),
     print_row(Cells).
 

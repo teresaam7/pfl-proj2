@@ -28,6 +28,13 @@ start_game(Player1, Player2) :-
     initial_state(GameState),
     game_loop(GameState, Player1, Player2).
 
+choose_move(GameState, computer(1), Move) :-
+    valid_moves(GameState, Moves),
+    random_member(Move, Moves).
+
+choose_move(GameState, computer(2), Move) :-
+    valid_moves(GameState, Moves),
+    best_move(GameState, Moves, Move).
 
 choose_move(GameState, human, Move) :-
     nl, write('Enter your move (Row, Col): '),
