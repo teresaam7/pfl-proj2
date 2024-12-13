@@ -20,7 +20,7 @@ game_loop(GameState, Player1, Player2) :-
         (CurrentPlayer = white -> CurrentPlayerType = Player1 ; CurrentPlayerType = Player2),
         choose_move(GameState, CurrentPlayerType, Move),
         move(GameState, Move, TempGameState),
-        handle_line_of_three(TempGameState, NewGameState),
+        handle_line_of_three(TempGameState, CurrentPlayerType, NewGameState),
         game_loop(NewGameState, Player1, Player2)
     ).
 
@@ -66,14 +66,21 @@ valid_position(Board, Row, Col) :-
     nth1(Col, BoardRow, Cell),
     Cell = empty.
 
-handle_line_of_three(state(Board, Player), state(NewBoard, Player)) :-
+handle_line_of_three(state(Board, Player), PlayerType, NewGameState) :-
     find_lines_of_three(Board, Player, Lines),
     Lines \= [],
-    nl, write('Line of three detected! Choose coordinates to remove and stack:'), nl,
-    display_game(state(Board, Player)),
-    choose_two_to_remove(Lines, ToRemove, StackPos),
-    update_board(Board, ToRemove, StackPos, Player, NewBoard).
-handle_line_of_three(GameState, GameState).
+    (   PlayerType = human ->
+        % Humano escolhe manualmente
+        write('Line of three detected! Choose coordinates to remove and stack:'), nl,
+        display_game(state(Board, Player)),
+        choose_two_to_remove(Lines, human, ToRemove, StackPos)
+    ;   PlayerType = computer(_) ->
+        % Computador escolhe automaticamente
+        choose_two_to_remove(Lines, computer(_), ToRemove, StackPos)
+    ),
+    update_board(Board, ToRemove, StackPos, Player, NewBoard),
+    NewGameState = state(NewBoard, Player).
+handle_line_of_three(GameState, _, GameState).
 
 find_lines_of_three(Board, Player, Lines) :-
     findall(Line, (check_lines(Board, Player, Line)), LineRows),
@@ -102,11 +109,17 @@ check_line(Line, Index, Player, [(Index, Col1), (Index, Col2), (Index, Col3)]) :
     nth1(Col2, Line, Player),
     nth1(Col3, Line, Player).
 
-choose_two_to_remove(_, ToRemove, StackPos) :-
+choose_two_to_remove(Lines, human, ToRemove, StackPos) :-
     write('Enter two positions to remove (e.g., [(R1, C1), (R2, C2)]): '),
     read(ToRemove),
     write('Enter position to stack (e.g., (Rs, Cs)): '),
     read(StackPos).
+
+choose_two_to_remove(Lines, computer(_), ToRemove, StackPos) :-
+    member(Line, Lines),
+    Line = [(R1, C1), (R2, C2), (R3, C3)],
+    ToRemove = [(R1, C1), (R2, C2)],
+    StackPos = (R3, C3).
 
 update_board(Board, ToRemove, StackPos, Player, NewBoard) :-
     remove_pieces(Board, ToRemove, TempBoard),
