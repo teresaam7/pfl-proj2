@@ -51,6 +51,3 @@ select_difficulty(Difficulty) :-
 
 
 
-
-
-

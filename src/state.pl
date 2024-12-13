@@ -24,6 +24,7 @@ game_loop(GameState, Player1, Player2) :-
         game_loop(NewGameState, Player1, Player2)
     ).
 
+
 start_game(Player1, Player2) :-
     initial_state(GameState),
     game_loop(GameState, Player1, Player2).
@@ -66,28 +67,29 @@ valid_position(Board, Row, Col) :-
     nth1(Col, BoardRow, Cell),
     Cell = empty.
 
-handle_line_of_three(state(Board, Player), PlayerType, NewGameState) :-
+handle_line_of_three(state(Board, Player), PlayerType, state(NewBoard, Player)) :-
     find_lines_of_three(Board, Player, Lines),
     Lines \= [],
-    (   PlayerType = human ->
-        % Humano escolhe manualmente
-        write('Line of three detected! Choose coordinates to remove and stack:'), nl,
-        display_game(state(Board, Player)),
-        choose_two_to_remove(Lines, human, ToRemove, StackPos)
-    ;   PlayerType = computer(_) ->
-        % Computador escolhe automaticamente
-        choose_two_to_remove(Lines, computer(_), ToRemove, StackPos)
+    (
+        PlayerType = human -> 
+            choose_two_to_remove(Lines, ToRemove, StackPos)
+        ;
+        PlayerType = computer(_) -> 
+            choose_best_removal(Lines, ToRemove, StackPos)
     ),
-    update_board(Board, ToRemove, StackPos, Player, NewBoard),
-    NewGameState = state(NewBoard, Player).
+    update_board(Board, ToRemove, StackPos, Player, NewBoard).
 handle_line_of_three(GameState, _, GameState).
 
+
+choose_best_removal([Line|_], ToRemove, StackPos) :-
+    Line = [(R1, C1), (R2, C2), (R3, C3)],
+    ToRemove = [(C1, R1), (C2, R2)],
+    StackPos = (C3, R3),
+    write('To Remove: '), write(ToRemove), nl,
+    write('Stack Position: '), write(StackPos), nl.
+
 find_lines_of_three(Board, Player, Lines) :-
-    findall(Line, (check_lines(Board, Player, Line)), LineRows),
-    findall(Line, (check_columns(Board, Player, Line)), LineCols),
-    findall(Line, (check_diagonals(Board, Player, Line)), LineDiags),
-    append(LineRows, LineCols, TempLines),
-    append(TempLines, LineDiags, Lines).
+    setof(Line, (check_lines(Board, Player, Line); check_columns(Board, Player, Line); check_diagonals(Board, Player, Line)), Lines).
 
 check_lines(Board, Player, Line) :-
     nth1(RowIdx, Board, Row),
@@ -95,31 +97,25 @@ check_lines(Board, Player, Line) :-
 
 check_columns(Board, Player, Line) :-
     transpose(Board, TransposedBoard),
-    findall(Line, (nth1(ColIdx, TransposedBoard, Col), check_line(Col, ColIdx, Player, Line)), Lines),
-    member(Line, Lines).
+    nth1(ColIdx, TransposedBoard, Col),
+    check_line(Col, ColIdx, Player, Line).
 
 check_diagonals(Board, Player, Line) :-
     diagonal(Board, Diagonals),
-    member(Diagonal, Diagonals),
-    check_line(Diagonal, _, Player, Line).
+    nth1(DiagIdx, Diagonals, Diagonal),
+    check_line(Diagonal, DiagIdx, Player, Line).
 
-check_line(Line, Index, Player, [(Index, Col1), (Index, Col2), (Index, Col3)]) :-
+check_line(Line, Index, Player, Result) :-
     append(_, [Player, Player, Player|_], Line),
-    nth1(Col1, Line, Player),
-    nth1(Col2, Line, Player),
-    nth1(Col3, Line, Player).
+    findall((Index, Col), 
+            (nth1(Col, Line, Player)), 
+            Result).
 
-choose_two_to_remove(Lines, human, ToRemove, StackPos) :-
+choose_two_to_remove(_, ToRemove, StackPos) :-
     write('Enter two positions to remove (e.g., [(R1, C1), (R2, C2)]): '),
     read(ToRemove),
     write('Enter position to stack (e.g., (Rs, Cs)): '),
     read(StackPos).
-
-choose_two_to_remove(Lines, computer(_), ToRemove, StackPos) :-
-    member(Line, Lines),
-    Line = [(R1, C1), (R2, C2), (R3, C3)],
-    ToRemove = [(R1, C1), (R2, C2)],
-    StackPos = (R3, C3).
 
 update_board(Board, ToRemove, StackPos, Player, NewBoard) :-
     remove_pieces(Board, ToRemove, TempBoard),
@@ -198,9 +194,7 @@ count_pieces(Board, Player, Count) :-
 
 % Extract all diagonals from a board
 diagonal(Board, Diagonals) :-
-    findall(Diag, diagonal_down(Board, Diag), Diagonals1),
-    findall(Diag, diagonal_up(Board, Diag), Diagonals2),
-    append(Diagonals1, Diagonals2, Diagonals).
+    findall(Diag, (diagonal_down(Board, Diag); diagonal_up(Board, Diag)), Diagonals).
 
 % Extract diagonals sloping downwards (top-left to bottom-right)
 diagonal_down(Board, Diagonal) :-
