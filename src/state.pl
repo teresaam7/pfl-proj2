@@ -72,9 +72,10 @@ handle_line_of_three(state(Board, Player), PlayerType, state(NewBoard, Player)) 
     Lines \= [],
     (
         PlayerType = human -> 
+            write('Lines of three found: '), write(Lines), nl,
             choose_two_to_remove(Lines, ToRemove, StackPos)
         ;
-        PlayerType = computer(_) -> 
+        PlayerType = computer(1) -> 
             choose_best_removal(Lines, ToRemove, StackPos)
     ),
     update_board(Board, ToRemove, StackPos, Player, NewBoard).
@@ -83,8 +84,8 @@ handle_line_of_three(GameState, _, GameState).
 
 choose_best_removal([Line|_], ToRemove, StackPos) :-
     Line = [(R1, C1), (R2, C2), (R3, C3)],
-    ToRemove = [(C1, R1), (C2, R2)],
-    StackPos = (C3, R3),
+    ToRemove = [(R1, C1), (R2, C2)],
+    StackPos = (R3, C3),
     write('To Remove: '), write(ToRemove), nl,
     write('Stack Position: '), write(StackPos), nl.
 
@@ -98,17 +99,30 @@ check_lines(Board, Player, Line) :-
 check_columns(Board, Player, Line) :-
     transpose(Board, TransposedBoard),
     nth1(ColIdx, TransposedBoard, Col),
-    check_line(Col, ColIdx, Player, Line).
+    check_line(Col, ColIdx, Player, TempLine),
+    maplist(swap_coords, TempLine, Line).
+
+swap_coords((X, Y), (Y, X)).
 
 check_diagonals(Board, Player, Line) :-
     diagonal(Board, Diagonals),
-    nth1(DiagIdx, Diagonals, Diagonal),
-    check_line(Diagonal, DiagIdx, Player, Line).
+    member(Diagonal, Diagonals),
+    check_diagonal_line(Diagonal, Player, Line).
 
-check_line(Line, Index, Player, Result) :-
+check_diagonal_line(Line, Player, Result) :-
     append(_, [Player, Player, Player|_], Line),
-    findall((Index, Col), 
-            (nth1(Col, Line, Player)), 
+    findall((Row, Col), 
+            (nth1(Index, Line, Player), 
+             Row is 8 - Index, 
+             Col is Index), 
+            Result).
+
+check_line(Line, Player, Result) :-
+    append(_, [Player, Player, Player|_], Line),
+    findall((Row, Col), 
+            (nth1(Index, Line, Player), 
+             Row is Index, 
+             Col is Index), 
             Result).
 
 choose_two_to_remove(_, ToRemove, StackPos) :-
@@ -196,14 +210,13 @@ count_pieces(Board, Player, Count) :-
 diagonal(Board, Diagonals) :-
     findall(Diag, (diagonal_down(Board, Diag); diagonal_up(Board, Diag)), Diagonals).
 
-% Extract diagonals sloping downwards (top-left to bottom-right)
 diagonal_down(Board, Diagonal) :-
     length(Board, N),
     between(1, N, StartRow),
     diagonal_down_from(Board, StartRow, 1, Diagonal).
 diagonal_down(Board, Diagonal) :-
     length(Board, N),
-    between(2, N, StartCol),
+    between(1, N, StartCol),
     diagonal_down_from(Board, 1, StartCol, Diagonal).
 
 diagonal_down_from(Board, Row, Col, []) :-
@@ -216,7 +229,6 @@ diagonal_down_from(Board, Row, Col, [Elem|Rest]) :-
     NextCol is Col + 1,
     diagonal_down_from(Board, NextRow, NextCol, Rest).
 
-% Extract diagonals sloping upwards (bottom-left to top-right)
 diagonal_up(Board, Diagonal) :-
     length(Board, N),
     between(1, N, StartRow),
@@ -227,7 +239,7 @@ diagonal_up(Board, Diagonal) :-
     diagonal_up_from(Board, N, StartCol, Diagonal).
 
 diagonal_up_from(Board, Row, Col, []) :-
-    (Row < 1 ; Col > 7). % Board size is fixed at 7x7.
+    (Row < 1 ; Col > 7 ; Row > 7).
 diagonal_up_from(Board, Row, Col, [Elem|Rest]) :-
     nth1(Row, Board, RowList),
     nth1(Col, RowList, Elem),
