@@ -80,21 +80,20 @@ handle_line_of_three(state(Board, Player), PlayerType, state(NewBoard, Player)) 
     find_lines_of_three(Board, NextPlayer, Lines),
     Lines \= [],
     (
-        PlayerType = human ->
-            choose_one_to_keep(Lines, KeepPos),
-            select_removal(Lines, KeepPos, ToRemove)
+        PlayerType = human -> 
+            write('Lines of three found: '), write(Lines), nl,
+            choose_two_to_remove(Lines, StackPos),
+            select_removal(StackPos, Lines, ToRemove),
+            write(ToRemove)
         ;
         PlayerType = computer(1) -> 
             choose_best_removal(Lines, ToRemove, StackPos)
     ),
-    update_board(Board, ToRemove, KeepPos, NextPlayer, NewBoard).
+    update_board(Board, ToRemove, StackPos, NextPlayer, NewBoard).
 handle_line_of_three(GameState, _, GameState).
 
-select_removal(Lines, KeepPos, ToRemove) :-
-    % Find the line containing the KeepPos and compute positions to remove
-    member(Line, Lines),
-    member(KeepPos, Line),
-    subtract(Line, [KeepPos], ToRemove).
+select_removal(StackPos, [Line|_], ToRemove) :-
+    exclude(==(StackPos), Line, ToRemove).
 
 
 choose_best_removal([Line|_], ToRemove, StackPos) :-
@@ -140,40 +139,9 @@ check_line(Line, Player, Result) :-
              Col is Index), 
             Result).
 
-choose_two_to_remove(Lines, ToRemove, StackPos) :-
-    repeat,  % Loop until valid input is provided
-    write('Enter two positions to remove (e.g., [(R1, C1), (R2, C2)]): '),
-    read(ToRemove),
-    write('Enter position to stack (e.g., (Rs, Cs)): '),
-    read(StackPos),
-    (valid_removal(Lines, ToRemove, StackPos) ->
-        !
-    ;
-        write('Invalid input! Please try again.'), nl, fail).
-choose_one_to_keep(Lines, KeepPos) :-
-    repeat,  % Loop until valid input is provided
-    write('Lines of three found: '), write(Lines), nl,
-    write('Enter the position you want to keep (e.g., (R, C)): '),
-    read(KeepPos),
-    (valid_keep(Lines, KeepPos) ->
-        !
-    ;
-        write('Invalid position! Please try again.'), nl, fail).
-
-valid_keep(Lines, KeepPos) :-
-    % Ensure the KeepPos is part of one of the lines in Lines
-    member(Line, Lines),
-    member(KeepPos, Line).
-
-
-valid_removal(Lines, ToRemove, StackPos) :-
-    % Check that ToRemove is a list of two valid positions from Lines
-    ToRemove = [(R1, C1), (R2, C2)],
-    member(Line, Lines),
-    subset(ToRemove, Line),
-    % Check that StackPos is a valid position in the same Line but not in ToRemove
-    member(StackPos, Line),
-    \+ member(StackPos, ToRemove).
+choose_two_to_remove(_, StackPos) :-
+    write('Enter position tostack (e.g., (Rs, Cs)): '),
+    read(StackPos).
 
 update_board(Board, ToRemove, StackPos, Player, NewBoard) :-
     remove_pieces(Board, ToRemove, TempBoard),
