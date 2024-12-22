@@ -42,13 +42,6 @@ choose_move(GameState, human, Move) :-
     read((Row, Col)),
     Move = move(Row, Col).
 
-
-
-
-
-
-
-
 move(state(Board, Player), move(Row, Col), state(NewBoard, NextPlayer)) :-
     valid_moves(state(Board, Player), Moves),
     member(move(Row, Col), Moves),
@@ -75,43 +68,30 @@ valid_position(Board, Row, Col) :-
     Cell = empty.
 
 handle_line_of_three(state(Board, Player), PlayerType, state(NewBoard, Player)) :-
-    find_lines_of_three(Board, Player, Lines),
+    next_player(Player, NextPlayer),
+    find_lines_of_three(Board, NextPlayer, Lines),
     Lines \= [],
     (
         PlayerType = human -> 
+            write('Lines of three found: '), write(Lines), nl,
             choose_two_to_remove(Lines, ToRemove, StackPos)
         ;
-        PlayerType = computer(_) -> 
+        PlayerType = computer(1) -> 
             choose_best_removal(Lines, ToRemove, StackPos)
     ),
-    update_board(Board, ToRemove, StackPos, Player, NewBoard).
+    update_board(Board, ToRemove, StackPos, NextPlayer, NewBoard).
 handle_line_of_three(GameState, _, GameState).
 
 
 choose_best_removal([Line|_], ToRemove, StackPos) :-
     Line = [(R1, C1), (R2, C2), (R3, C3)],
-    AllPositions = [(R1, C1), (R2, C2), (R3, C3)],
-    random(0, 3, StackIndex),  
-    nth0(StackIndex, AllPositions, StackPos),
-    select(StackPos, AllPositions, RemainingPositions),
-    ToRemove = RemainingPositions,
-    
+    ToRemove = [(R1, C1), (R2, C2)],
+    StackPos = (R3, C3),
     write('To Remove: '), write(ToRemove), nl,
     write('Stack Position: '), write(StackPos), nl.
 
 find_lines_of_three(Board, Player, Lines) :-
-    setof(Line, 
-          (check_lines(Board, Player, Line); 
-           check_columns(Board, Player, Line); 
-           check_diagonals(Board, Player, Line)), 
-          Lines),
-    print_lines(Lines).
-
-print_lines([]).
-print_lines([Line | Rest]) :-
-    write('Found line: '), 
-    write(Line), nl,  % Escreve a linha encontrada
-    print_lines(Rest).  % Processa o restante das linhas
+    setof(Line, (check_lines(Board, Player, Line); check_columns(Board, Player, Line); check_diagonals(Board, Player, Line)), Lines).
 
 check_lines(Board, Player, Line) :-
     nth1(RowIdx, Board, Row),
@@ -121,61 +101,36 @@ check_columns(Board, Player, Line) :-
     transpose(Board, TransposedBoard),
     nth1(ColIdx, TransposedBoard, Col),
     check_line(Col, ColIdx, Player, TempLine),
-    swap_coordinates(TempLine, Line).
+    maplist(swap_coords, TempLine, Line).
 
-swap_coordinates([], []).
-swap_coordinates([(Col, Row) | Rest], [(Row, Col) | SwappedRest]) :-
-    swap_coordinates(Rest, SwappedRest).
+swap_coords((X, Y), (Y, X)).
 
+check_diagonals(Board, Player, Line) :-
+    diagonal(Board, Diagonals),
+    member(Diagonal, Diagonals),
+    check_diagonal_line(Diagonal, Player, Line).
 
-check_line(Line, Index, Player, Result) :-
+check_diagonal_line(Line, Player, Result) :-
     append(_, [Player, Player, Player|_], Line),
-    findall((Index, Col), 
-            (nth1(Col, Line, Player)), 
+    findall((Row, Col), 
+            (nth1(Index, Line, Player), 
+             Row is 8 - Index, 
+             Col is Index), 
             Result).
 
+check_line(Line, Player, Result) :-
+    append(_, [Player, Player, Player|_], Line),
+    findall((Row, Col), 
+            (nth1(Index, Line, Player), 
+             Row is Index, 
+             Col is Index), 
+            Result).
 
-
-
-
-
-
-
-
-
-
-
-
-choose_two_to_remove(Lines, ToRemove, StackPos) :-
-    [Line|_] = Lines,
-    write('Enter two positions to remove from the line above (e.g., [(R1, C1), (R2, C2)]): '),
-    read(UserRemove),
-    choose_two_to_remove_validate(Lines, Line, UserRemove, ToRemove, StackPos).
-
-choose_two_to_remove_validate(Lines, Line, UserRemove, ToRemove, StackPos) :-
-    validate_removal(Line, UserRemove),
-    ToRemove = UserRemove,
-    find_remaining_pos(Line, UserRemove, StackPos).
-choose_two_to_remove_validate(Lines, Line, UserRemove, ToRemove, StackPos) :-
-    write('Invalid positions! Please choose positions from the line shown above.'), nl,
-    choose_two_to_remove(Lines, ToRemove, StackPos).
-
-validate_removal(Line, [(R1,C1), (R2,C2)]) :-
-    member((R1,C1), Line),
-    member((R2,C2), Line),
-    (R1,C1) \= (R2,C2).
-
-find_remaining_pos(Line, [(R1,C1), (R2,C2)], StackPos) :-
-    member(StackPos, Line),
-    StackPos \= (R1,C1),
-    StackPos \= (R2,C2).
-
-
-
-
-
-
-
+choose_two_to_remove(_, ToRemove, StackPos) :-
+    write('Enter two positions to remove (e.g., [(R1, C1), (R2, C2)]): '),
+    read(ToRemove),
+    write('Enter position to stack (e.g., (Rs, Cs)): '),
+    read(StackPos).
 
 update_board(Board, ToRemove, StackPos, Player, NewBoard) :-
     remove_pieces(Board, ToRemove, TempBoard),
@@ -233,13 +188,6 @@ board_full(Board) :-
 next_player(white, black).
 next_player(black, white).
 
-
-
-
-
-
-
-
 % AI: Find the best move
 best_move(GameState, Moves, BestMove) :-
     GameState = state(_, Player),
@@ -259,42 +207,29 @@ count_pieces(Board, Player, Count) :-
     include(=(Player), Pieces, PlayerPieces),
     length(PlayerPieces, Count).
 
-
-
-
-
-
-
-% Extract all diagonals from a board with coordinates
+% Extract all diagonals from a board
 diagonal(Board, Diagonals) :-
-    findall(Diag, diagonal_down(Board, Diag), DownDiags),
-    findall(Diag, diagonal_up(Board, Diag), UpDiags),
-    append(DownDiags, UpDiags, Diagonals).
+    findall(Diag, (diagonal_down(Board, Diag); diagonal_up(Board, Diag)), Diagonals).
 
-% Extract downward diagonals with coordinates
 diagonal_down(Board, Diagonal) :-
     length(Board, N),
     between(1, N, StartRow),
     diagonal_down_from(Board, StartRow, 1, Diagonal).
 diagonal_down(Board, Diagonal) :-
     length(Board, N),
-    between(2, N, StartCol),
+    between(1, N, StartCol),
     diagonal_down_from(Board, 1, StartCol, Diagonal).
 
 diagonal_down_from(Board, Row, Col, []) :-
     length(Board, N),
     (Row > N ; Col > N).
-diagonal_down_from(Board, Row, Col, [(Value,(Row,Col))|Rest]) :-
-    length(Board, N),
-    Row =< N,
-    Col =< N,
+diagonal_down_from(Board, Row, Col, [Elem|Rest]) :-
     nth1(Row, Board, RowList),
-    nth1(Col, RowList, Value),
+    nth1(Col, RowList, Elem),
     NextRow is Row + 1,
     NextCol is Col + 1,
     diagonal_down_from(Board, NextRow, NextCol, Rest).
 
-% Extract upward diagonals with coordinates
 diagonal_up(Board, Diagonal) :-
     length(Board, N),
     between(1, N, StartRow),
@@ -305,26 +240,13 @@ diagonal_up(Board, Diagonal) :-
     diagonal_up_from(Board, N, StartCol, Diagonal).
 
 diagonal_up_from(Board, Row, Col, []) :-
-    (Row < 1 ; Col > 7).
-diagonal_up_from(Board, Row, Col, [(Value,(Row,Col))|Rest]) :-
-    Row >= 1,
-    Col =< 7,
+    (Row < 1 ; Col > 7 ; Row > 7).
+diagonal_up_from(Board, Row, Col, [Elem|Rest]) :-
     nth1(Row, Board, RowList),
-    nth1(Col, RowList, Value),
+    nth1(Col, RowList, Elem),
     NextRow is Row - 1,
     NextCol is Col + 1,
     diagonal_up_from(Board, NextRow, NextCol, Rest).
-
-% Check diagonals for three consecutive pieces
-check_diagonals(Board, Player, Line) :-
-    diagonal(Board, Diagonals),
-    member(Diagonal, Diagonals),
-    find_three_consecutive(Diagonal, Player, Line).
-
-% Find three consecutive pieces with their coordinates
-find_three_consecutive([(Player,(R1,C1)), (Player,(R2,C2)), (Player,(R3,C3))|_], Player, [(R1,C1), (R2,C2), (R3,C3)]).
-find_three_consecutive([_|Rest], Player, Line) :-
-    find_three_consecutive(Rest, Player, Line).
 
 between(Low, High, Low) :-
     Low =< High.
