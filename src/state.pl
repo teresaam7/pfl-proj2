@@ -83,8 +83,12 @@ handle_line_of_three(GameState, _, GameState).
 
 choose_best_removal([Line|_], ToRemove, StackPos) :-
     Line = [(R1, C1), (R2, C2), (R3, C3)],
-    ToRemove = [(C1, R1), (C2, R2)],
-    StackPos = (C3, R3),
+    AllPositions = [(R1, C1), (R2, C2), (R3, C3)],
+    random(0, 3, StackIndex),  
+    nth0(StackIndex, AllPositions, StackPos),
+    select(StackPos, AllPositions, RemainingPositions),
+    ToRemove = RemainingPositions,
+    
     write('To Remove: '), write(ToRemove), nl,
     write('Stack Position: '), write(StackPos), nl.
 
