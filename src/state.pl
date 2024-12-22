@@ -89,7 +89,18 @@ choose_best_removal([Line|_], ToRemove, StackPos) :-
     write('Stack Position: '), write(StackPos), nl.
 
 find_lines_of_three(Board, Player, Lines) :-
-    setof(Line, (check_lines(Board, Player, Line); check_columns(Board, Player, Line); check_diagonals(Board, Player, Line)), Lines).
+    setof(Line, 
+          (check_lines(Board, Player, Line); 
+           check_columns(Board, Player, Line); 
+           check_diagonals(Board, Player, Line)), 
+          Lines),
+    print_lines(Lines).
+
+print_lines([]).
+print_lines([Line | Rest]) :-
+    write('Found line: '), 
+    write(Line), nl,  % Escreve a linha encontrada
+    print_lines(Rest).  % Processa o restante das linhas
 
 check_lines(Board, Player, Line) :-
     nth1(RowIdx, Board, Row),
@@ -98,12 +109,13 @@ check_lines(Board, Player, Line) :-
 check_columns(Board, Player, Line) :-
     transpose(Board, TransposedBoard),
     nth1(ColIdx, TransposedBoard, Col),
-    check_line(Col, ColIdx, Player, Line).
+    check_line(Col, ColIdx, Player, TempLine),
+    swap_coordinates(TempLine, Line).
 
-check_diagonals(Board, Player, Line) :-
-    diagonal(Board, Diagonals),
-    nth1(DiagIdx, Diagonals, Diagonal),
-    check_line(Diagonal, DiagIdx, Player, Line).
+swap_coordinates([], []).
+swap_coordinates([(Col, Row) | Rest], [(Row, Col) | SwappedRest]) :-
+    swap_coordinates(Rest, SwappedRest).
+
 
 check_line(Line, Index, Player, Result) :-
     append(_, [Player, Player, Player|_], Line),
@@ -192,11 +204,13 @@ count_pieces(Board, Player, Count) :-
     include(=(Player), Pieces, PlayerPieces),
     length(PlayerPieces, Count).
 
-% Extract all diagonals from a board
+% Extract all diagonals from a board with coordinates
 diagonal(Board, Diagonals) :-
-    findall(Diag, (diagonal_down(Board, Diag); diagonal_up(Board, Diag)), Diagonals).
+    findall(Diag, diagonal_down(Board, Diag), DownDiags),
+    findall(Diag, diagonal_up(Board, Diag), UpDiags),
+    append(DownDiags, UpDiags, Diagonals).
 
-% Extract diagonals sloping downwards (top-left to bottom-right)
+% Extract downward diagonals with coordinates
 diagonal_down(Board, Diagonal) :-
     length(Board, N),
     between(1, N, StartRow),
@@ -209,14 +223,17 @@ diagonal_down(Board, Diagonal) :-
 diagonal_down_from(Board, Row, Col, []) :-
     length(Board, N),
     (Row > N ; Col > N).
-diagonal_down_from(Board, Row, Col, [Elem|Rest]) :-
+diagonal_down_from(Board, Row, Col, [(Value,(Row,Col))|Rest]) :-
+    length(Board, N),
+    Row =< N,
+    Col =< N,
     nth1(Row, Board, RowList),
-    nth1(Col, RowList, Elem),
+    nth1(Col, RowList, Value),
     NextRow is Row + 1,
     NextCol is Col + 1,
     diagonal_down_from(Board, NextRow, NextCol, Rest).
 
-% Extract diagonals sloping upwards (bottom-left to top-right)
+% Extract upward diagonals with coordinates
 diagonal_up(Board, Diagonal) :-
     length(Board, N),
     between(1, N, StartRow),
@@ -227,13 +244,26 @@ diagonal_up(Board, Diagonal) :-
     diagonal_up_from(Board, N, StartCol, Diagonal).
 
 diagonal_up_from(Board, Row, Col, []) :-
-    (Row < 1 ; Col > 7). % Board size is fixed at 7x7.
-diagonal_up_from(Board, Row, Col, [Elem|Rest]) :-
+    (Row < 1 ; Col > 7).
+diagonal_up_from(Board, Row, Col, [(Value,(Row,Col))|Rest]) :-
+    Row >= 1,
+    Col =< 7,
     nth1(Row, Board, RowList),
-    nth1(Col, RowList, Elem),
+    nth1(Col, RowList, Value),
     NextRow is Row - 1,
     NextCol is Col + 1,
     diagonal_up_from(Board, NextRow, NextCol, Rest).
+
+% Check diagonals for three consecutive pieces
+check_diagonals(Board, Player, Line) :-
+    diagonal(Board, Diagonals),
+    member(Diagonal, Diagonals),
+    find_three_consecutive(Diagonal, Player, Line).
+
+% Find three consecutive pieces with their coordinates
+find_three_consecutive([(Player,(R1,C1)), (Player,(R2,C2)), (Player,(R3,C3))|_], Player, [(R1,C1), (R2,C2), (R3,C3)]).
+find_three_consecutive([_|Rest], Player, Line) :-
+    find_three_consecutive(Rest, Player, Line).
 
 between(Low, High, Low) :-
     Low =< High.
