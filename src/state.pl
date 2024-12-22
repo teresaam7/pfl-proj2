@@ -42,6 +42,13 @@ choose_move(GameState, human, Move) :-
     read((Row, Col)),
     Move = move(Row, Col).
 
+
+
+
+
+
+
+
 move(state(Board, Player), move(Row, Col), state(NewBoard, NextPlayer)) :-
     valid_moves(state(Board, Player), Moves),
     member(move(Row, Col), Moves),
@@ -127,11 +134,48 @@ check_line(Line, Index, Player, Result) :-
             (nth1(Col, Line, Player)), 
             Result).
 
-choose_two_to_remove(_, ToRemove, StackPos) :-
-    write('Enter two positions to remove (e.g., [(R1, C1), (R2, C2)]): '),
-    read(ToRemove),
-    write('Enter position to stack (e.g., (Rs, Cs)): '),
-    read(StackPos).
+
+
+
+
+
+
+
+
+
+
+
+
+choose_two_to_remove(Lines, ToRemove, StackPos) :-
+    [Line|_] = Lines,
+    write('Enter two positions to remove from the line above (e.g., [(R1, C1), (R2, C2)]): '),
+    read(UserRemove),
+    choose_two_to_remove_validate(Lines, Line, UserRemove, ToRemove, StackPos).
+
+choose_two_to_remove_validate(Lines, Line, UserRemove, ToRemove, StackPos) :-
+    validate_removal(Line, UserRemove),
+    ToRemove = UserRemove,
+    find_remaining_pos(Line, UserRemove, StackPos).
+choose_two_to_remove_validate(Lines, Line, UserRemove, ToRemove, StackPos) :-
+    write('Invalid positions! Please choose positions from the line shown above.'), nl,
+    choose_two_to_remove(Lines, ToRemove, StackPos).
+
+validate_removal(Line, [(R1,C1), (R2,C2)]) :-
+    member((R1,C1), Line),
+    member((R2,C2), Line),
+    (R1,C1) \= (R2,C2).
+
+find_remaining_pos(Line, [(R1,C1), (R2,C2)], StackPos) :-
+    member(StackPos, Line),
+    StackPos \= (R1,C1),
+    StackPos \= (R2,C2).
+
+
+
+
+
+
+
 
 update_board(Board, ToRemove, StackPos, Player, NewBoard) :-
     remove_pieces(Board, ToRemove, TempBoard),
@@ -189,6 +233,13 @@ board_full(Board) :-
 next_player(white, black).
 next_player(black, white).
 
+
+
+
+
+
+
+
 % AI: Find the best move
 best_move(GameState, Moves, BestMove) :-
     GameState = state(_, Player),
@@ -207,6 +258,12 @@ count_pieces(Board, Player, Count) :-
     flatten(Board, Pieces),
     include(=(Player), Pieces, PlayerPieces),
     length(PlayerPieces, Count).
+
+
+
+
+
+
 
 % Extract all diagonals from a board with coordinates
 diagonal(Board, Diagonals) :-
