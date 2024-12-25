@@ -21,7 +21,8 @@ game_loop(GameState, Player1, Player2, TurnCount, PieRule) :-
         (TurnCount =:= 2 ->
             nl, write('Would you like to change colors with your opponent? y/n '),
                 read(Answer),
-                NewPieRule = Answer
+                NewPieRule = Answer,
+                (Answer = 'y') -> game_loop(GameState, Player1, Player2, TurnCount +1, NewPieRule)
         ;
             NewPieRule = PieRule % Continue if TurnCount is not 2
         ),
