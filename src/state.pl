@@ -384,7 +384,9 @@ adjacent_positions(Row, Col, Adjacent) :-
 
 % Extract all diagonals from a board
 diagonal(Board, Diagonals) :-
-    findall(Diag, (diagonal_down(Board, Diag); diagonal_up(Board, Diag)), Diagonals).
+    findall(Diag, diagonal_down(Board, Diag), DownDiags),
+    findall(Diag, diagonal_up(Board, Diag), UpDiags),
+    append(DownDiags, UpDiags, Diagonals).
 
 diagonal_down(Board, Diagonal) :-
     length(Board, N),
@@ -392,15 +394,18 @@ diagonal_down(Board, Diagonal) :-
     diagonal_down_from(Board, StartRow, 1, Diagonal).
 diagonal_down(Board, Diagonal) :-
     length(Board, N),
-    between(1, N, StartCol),
+    between(2, N, StartCol),
     diagonal_down_from(Board, 1, StartCol, Diagonal).
 
 diagonal_down_from(Board, Row, Col, []) :-
     length(Board, N),
     (Row > N ; Col > N).
-diagonal_down_from(Board, Row, Col, [Elem|Rest]) :-
+diagonal_down_from(Board, Row, Col, [(Value,(Row,Col))|Rest]) :-
+    length(Board, N),
+    Row =< N,
+    Col =< N,
     nth1(Row, Board, RowList),
-    nth1(Col, RowList, Elem),
+    nth1(Col, RowList, Value),
     NextRow is Row + 1,
     NextCol is Col + 1,
     diagonal_down_from(Board, NextRow, NextCol, Rest).
@@ -415,13 +420,24 @@ diagonal_up(Board, Diagonal) :-
     diagonal_up_from(Board, N, StartCol, Diagonal).
 
 diagonal_up_from(Board, Row, Col, []) :-
-    (Row < 1 ; Col > 7 ; Row > 7).
-diagonal_up_from(Board, Row, Col, [Elem|Rest]) :-
+    (Row < 1 ; Col > 7).
+diagonal_up_from(Board, Row, Col, [(Value,(Row,Col))|Rest]) :-
+    Row >= 1,
+    Col =< 7,
     nth1(Row, Board, RowList),
-    nth1(Col, RowList, Elem),
+    nth1(Col, RowList, Value),
     NextRow is Row - 1,
     NextCol is Col + 1,
     diagonal_up_from(Board, NextRow, NextCol, Rest).
+
+check_diagonals(Board, Player, Line) :-
+    diagonal(Board, Diagonals),
+    member(Diagonal, Diagonals),
+    find_three_consecutive(Diagonal, Player, Line).
+
+find_three_consecutive([(Player,(R1,C1)), (Player,(R2,C2)), (Player,(R3,C3))|_], Player, [(R1,C1), (R2,C2), (R3,C3)]).
+find_three_consecutive([_|Rest], Player, Line) :-
+    find_three_consecutive(Rest, Player, Line).
 
 between(Low, High, Low) :-
     Low =< High.
@@ -429,3 +445,7 @@ between(Low, High, Value) :-
     Low < High,
     Next is Low + 1,
     between(Next, High, Value).
+
+
+
+
