@@ -1,4 +1,3 @@
-
 initial_state(state(Board, white)) :-
     empty_board(Board).
 
@@ -76,10 +75,9 @@ handle_pie_rule_response(GameState, Player1, Player2, TurnCount, _) :-
 
 continue_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule) :-
     determine_player_type(CurrentPlayer, Player1, Player2, PieRule, CurrentPlayerType),
-    
     handle_line_of_three(GameState, CurrentPlayerType, UpdatedGameState),
     choose_move(UpdatedGameState, CurrentPlayerType, Move),
-    (Move = exit -> true ;  
+    (Move = exit -> true ;
     move(UpdatedGameState, Move, TempGameState),
     handle_line_of_three(TempGameState, CurrentPlayerType, NewGameState),
     NewTurnCount is TurnCount + 1,
@@ -159,14 +157,16 @@ handle_line_of_three(state(Board, Player), PlayerType, state(NewBoard, Player)) 
     find_lines_of_three(Board, NextPlayer, Lines),
     Lines \= [],
     (
-        PlayerType = human -> 
+        PlayerType = human ->
+            % Prompt the user to stack
             write('Lines of three found: '), write(Lines), nl,
             choose_two_to_remove(Lines, StackPos),
             (StackPos = exit -> true ;  % Stop execution if user exits
             select_removal(StackPos, Lines, ToRemove),
             update_board(Board, ToRemove, StackPos, NextPlayer, NewBoard))
         ;
-        PlayerType = computer(1) -> 
+        % Automatically handle stacking for computer players
+        PlayerType = computer(_) -> 
             choose_best_removal(Lines, ToRemove, StackPos),
             update_board(Board, ToRemove, StackPos, NextPlayer, NewBoard)
     ).
@@ -179,13 +179,22 @@ select_removal(StackPos, [Line|_], ToRemove) :-
 
 choose_best_removal([Line|_], ToRemove, StackPos) :-
     Line = [(R1, C1), (R2, C2), (R3, C3)],
+    % Validate same color
+    nth1(R1, Board, Row1), nth1(C1, Row1, Player),
+    nth1(R2, Board, Row2), nth1(C2, Row2, Player),
+    nth1(R3, Board, Row3), nth1(C3, Row3, Player),
     ToRemove = [(R1, C1), (R2, C2)],
     StackPos = (R3, C3),
     write('To Remove: '), write(ToRemove), nl,
     write('Stack Position: '), write(StackPos), nl.
 
 find_lines_of_three(Board, Player, Lines) :-
-    setof(Line, (check_lines(Board, Player, Line); check_columns(Board, Player, Line); check_diagonals(Board, Player, Line)), Lines).
+    setof(Line, (valid_line(Board, Player, Line)), Lines).
+
+valid_line(Board, Player, Line) :-
+    (check_lines(Board, Player, Line);
+     check_columns(Board, Player, Line);
+     check_diagonals(Board, Player, Line)).
 
 check_lines(Board, Player, Line) :-
     nth1(RowIdx, Board, Row),
