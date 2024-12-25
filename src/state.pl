@@ -22,12 +22,12 @@ game_loop(GameState, Player1, Player2, TurnCount, PieRule) :-
 
 handle_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule) :-
     (TurnCount =:= 2 ->
-        ask_pie_rule(GameState, Player1, Player2, TurnCount, PieRule)
+        ask_pie_rule(GameState, Player1, Player2, TurnCount)
     ;
         continue_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule)
     ).
 
-ask_pie_rule(GameState, Player1, Player2, TurnCount, PieRule) :-
+ask_pie_rule(GameState, Player1, Player2, TurnCount) :-
     (is_easy_computer(Player1) ->
         random_pie_rule_response(Response),
         nl, format("Computer chooses to ~w change colors.~n", [Response]),
@@ -41,9 +41,9 @@ ask_pie_rule(GameState, Player1, Player2, TurnCount, PieRule) :-
 % Check if the current player is a computer in easy mode
 is_easy_computer(computer(1)).
 
-% Randomly decide 'y' or 'n' using SWI-Prolog's random/1
+% Randomly decide 'y' or 'n'  if it's a computer
 random_pie_rule_response('y') :-
-    random(0.0, 1.0, Rand),  % Generates a random float between 0.0 and 1.0
+    random(0.0, 1.0, Rand), 
     Rand < 0.5.
 random_pie_rule_response('n') :-
     random(0.0, 1.0, Rand), 
@@ -90,14 +90,20 @@ choose_move(GameState, computer(2), Move) :-
     best_move(GameState, Moves, Move).
 
 choose_move(GameState, human, Move) :-
-    repeat,  % This creates a loop until `valid_input` succeeds.
-    nl, write('Enter your move (Row, Col): '),
-    read((Row, Col)),
-    (valid_move(GameState, move(Row, Col)) ->
-        Move = move(Row, Col),
-        !
+    repeat, 
+    nl, write('Enter your move as (Row, Col): '),
+    catch(read((Row, Col)), _, fail), 
+    (
+        integer(Row), integer(Col), Row > 0, Row =< 7, Col > 0, Col =< 7 ->
+        (valid_move(GameState, move(Row, Col)) ->
+            Move = move(Row, Col), !
+        ;
+            write('Invalid move! That cell is already occupied or invalid.'), nl, fail
+        )
     ;
-        write('Invalid move! Please try again.'), nl, fail).
+        write('Invalid input format! Please enter a valid (Row, Col) pair.'), nl, fail
+    ).
+
 
 valid_move(state(Board, _), move(Row, Col)) :-
     valid_position(Board, Row, Col).
