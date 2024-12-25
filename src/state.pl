@@ -19,6 +19,8 @@ game_loop(GameState, Player1, Player2, TurnCount, PieRule) :-
         GameState = state(_, CurrentPlayer),
         handle_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule)
     ).
+game_loop(_, _, _, _, _) :-
+    nl, write('Game exited. Thank you for playing!'), !.
 
 handle_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule) :-
     (TurnCount =:= 2 ->
@@ -33,10 +35,21 @@ ask_pie_rule(GameState, Player1, Player2, TurnCount) :-
         nl, format("Computer chooses to ~w change colors.~n", [Response]),
         handle_pie_rule_response(GameState, Player1, Player2, TurnCount, Response)
     ;
-        nl, write('Would you like to change colors with your opponent? y/n '),
-        read(Answer),
-        handle_pie_rule_response(GameState, Player1, Player2, TurnCount, Answer)
+        repeat,  % Loop until valid input
+        nl, write('(0 to exit)'),
+        nl, write('Would you like to change colors with your opponent? y/n : '),
+        catch(read(Answer), _, fail),
+        (
+            Answer = 0 ->  % Exit condition
+            nl, write('Exiting the game. Goodbye!'), nl, !, fail   % Terminate Prolog execution
+        ;
+            member(Answer, ['y', 'n']) ->  % Valid pie rule input
+            handle_pie_rule_response(GameState, Player1, Player2, TurnCount, Answer), !
+        ;
+            write('Invalid choice! Please enter y, n.'), nl, fail
+        )
     ).
+
 
 % Check if the current player is a computer in easy mode
 is_easy_computer(computer(1)).
@@ -64,10 +77,12 @@ handle_pie_rule_response(GameState, Player1, Player2, TurnCount, _) :-
 continue_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule) :-
     determine_player_type(CurrentPlayer, Player1, Player2, PieRule, CurrentPlayerType),
     choose_move(GameState, CurrentPlayerType, Move),
+    (Move = exit -> true ;  
     move(GameState, Move, TempGameState),
     handle_line_of_three(TempGameState, CurrentPlayerType, NewGameState),
     NewTurnCount is TurnCount + 1,
-    game_loop(NewGameState, Player1, Player2, NewTurnCount, PieRule).
+    game_loop(NewGameState, Player1, Player2, NewTurnCount, PieRule)).
+
 
 determine_player_type(CurrentPlayer, Player1, Player2, PieRule, CurrentPlayerType) :-
     ( (PieRule = 'y', CurrentPlayer = black ; PieRule \= 'y', CurrentPlayer = white) ->
@@ -90,19 +105,24 @@ choose_move(GameState, computer(2), Move) :-
     best_move(GameState, Moves, Move).
 
 choose_move(GameState, human, Move) :-
-    repeat, 
+    repeat,
+    nl, write('(0 to exit)'),
     nl, write('Enter your move as (Row, Col): '),
-    catch(read((Row, Col)), _, fail), 
+    catch(read(Input), _, fail),  % Catch invalid input formats
     (
-        integer(Row), integer(Col), Row > 0, Row =< 7, Col > 0, Col =< 7 ->
+        Input = 0 ->  % Exit condition
+        nl, write('Exiting the game. Goodbye!'), nl, Move = exit, !   % Terminate Prolog execution
+    ;
+        Input = (Row, Col), integer(Row), integer(Col), Row > 0, Row =< 7, Col > 0, Col =< 7 ->
         (valid_move(GameState, move(Row, Col)) ->
             Move = move(Row, Col), !
         ;
             write('Invalid move! That cell is already occupied or invalid.'), nl, fail
         )
     ;
-        write('Invalid input format! Please enter a valid (Row, Col) pair.'), nl, fail
+        write('Invalid input! Please enter (Row, Col) .'), nl, fail
     ).
+
 
 
 valid_move(state(Board, _), move(Row, Col)) :-
@@ -141,14 +161,16 @@ handle_line_of_three(state(Board, Player), PlayerType, state(NewBoard, Player)) 
         PlayerType = human -> 
             write('Lines of three found: '), write(Lines), nl,
             choose_two_to_remove(Lines, StackPos),
+            (StackPos = exit -> true ;  % Stop execution if user exits
             select_removal(StackPos, Lines, ToRemove),
-            write(ToRemove)
+            update_board(Board, ToRemove, StackPos, NextPlayer, NewBoard))
         ;
         PlayerType = computer(1) -> 
-            choose_best_removal(Lines, ToRemove, StackPos)
-    ),
-    update_board(Board, ToRemove, StackPos, NextPlayer, NewBoard).
+            choose_best_removal(Lines, ToRemove, StackPos),
+            update_board(Board, ToRemove, StackPos, NextPlayer, NewBoard)
+    ).
 handle_line_of_three(GameState, _, GameState).
+
 
 select_removal(StackPos, [Line|_], ToRemove) :-
     exclude(==(StackPos), Line, ToRemove).
@@ -199,9 +221,25 @@ check_line(Line, RowIdx, Player, Result) :-
         ),
         Result).
 
-choose_two_to_remove(_, StackPos) :-
-    write('Enter position tostack (e.g., (Rs, Cs)): '),
-    read(StackPos).
+choose_two_to_remove(Lines, StackPos) :-
+    repeat,  % Loop until a valid input is provided
+    nl, write('(0 to exit)'),
+    nl, write('Enter position to stack (e.g., (Rs, Cs)) : '),
+    catch(read(Input), _, fail),  % Catch invalid input formats
+    (
+        Input = 0 ->  % Exit condition
+        nl, write('Exiting the game. Goodbye!'),  nl, StackPos = exit, !  % Terminate Prolog execution
+    ;
+        Input = (Row, Col), integer(Row), integer(Col),  % Ensure input is integers
+        member(Line, Lines), member((Row, Col), Line) ->  % Verify input is part of a line of three
+        StackPos = (Row, Col),  % Assign valid position to StackPos
+        nl, format("Position ~w selected for stacking.~n", [StackPos]), !
+    ;
+        % Invalid input; provide feedback and retry
+        write('Invalid position! Please enter a valid (Row, Col) from the lines of three.'), nl, fail
+    ).
+
+
 
 update_board(Board, ToRemove, StackPos, Player, NewBoard) :-
     remove_pieces(Board, ToRemove, TempBoard),
@@ -259,12 +297,76 @@ board_full(Board) :-
 next_player(white, black).
 next_player(black, white).
 
-% AI: Find the best move
-best_move(GameState, Moves, BestMove) :-
-    GameState = state(_, Player),
-    findall(Value-Move, (member(Move, Moves), simulate_move(GameState, Move, Value)), MovesWithValues),
-    max_member(_-BestMove, MovesWithValues).
+%--------------------------------------------------------------------
+% Find the best move for a player using a greedy strategy
+best_move(state(Board, Player), Moves, BestMove) :-
+    findall(Score-Move, (member(Move, Moves), evaluate_move(state(Board, Player), Move, Score)), ScoredMoves),
+    max_member(_-BestMove, ScoredMoves).
 
+% Evaluate a move based on the game rules
+evaluate_move(state(Board, Player), move(Row, Col), Score) :-
+    % Simulate the move
+    apply_move(Board, Row, Col, Player, NewBoard),
+    % Check for winning condition after the move
+    (winning_move(state(NewBoard, Player)) ->
+        Score = 1000  % High score for immediate win
+    ;
+        % Check if it blocks the opponent's win
+        next_player(Player, Opponent),
+        blocking_move(state(NewBoard, Opponent)) ->
+        Score = 500   % Medium score for blocking opponent
+    ;
+        % Default evaluation based on advantageous position
+        heuristic_score(NewBoard, Player, Row, Col, Score)
+    ).
+
+% Check if the move creates a winning line for the player
+winning_move(state(Board, Player)) :-
+    line_of_stacks(Board, Player).
+
+% Check if the move blocks the opponent's win
+blocking_move(state(Board, Opponent)) :-
+    line_of_stacks(Board, Opponent).
+
+% Calculate a heuristic score for the move
+heuristic_score(Board, Player, Row, Col, Score) :-
+    center_bonus(Row, Col, CenterScore),
+    potential_lines(Board, Player, Row, Col, LineScore),
+    Score is CenterScore + LineScore.
+
+% Bonus for central positions
+center_bonus(Row, Col, Score) :-
+    (Row > 2, Row < 6, Col > 2, Col < 6 ->
+        Score = 10  % Central positions are more valuable
+    ;
+        Score = 0).
+
+% Score based on potential to form lines of three
+potential_lines(Board, Player, Row, Col, Score) :-
+    % Count how many lines of 2 exist near (Row, Col)
+    findall(_, potential_line(Board, Player, Row, Col), Lines),
+    length(Lines, Score).
+
+% Check if placing at (Row, Col) contributes to a line of 2
+potential_line(Board, Player, Row, Col) :-
+    % Extract adjacent cells to (Row, Col) in all directions
+    adjacent_positions(Row, Col, Adjacent),
+    member((AdjRow, AdjCol), Adjacent),
+    nth1(AdjRow, Board, AdjRowList),
+    nth1(AdjCol, AdjRowList, Player).
+
+% Generate adjacent positions on the board
+% Generate adjacent positions on the board
+adjacent_positions(Row, Col, Adjacent) :-
+    findall((R, C),
+        (between(Row-1, Row+1, TempR),
+         between(Col-1, Col+1, TempC),
+         R is TempR,  % Ensure TempR is evaluated
+         C is TempC,  % Ensure TempC is evaluated
+         R > 0, R =< 7, C > 0, C =< 7, % Keep within board boundaries
+         (R, C) \= (Row, Col)),  % Exclude the current position
+        Adjacent).
+%----------------------------------------------------------------
 simulate_move(GameState, Move, Value) :-
     move(GameState, Move, NewGameState),
     value(NewGameState, _, Value).
