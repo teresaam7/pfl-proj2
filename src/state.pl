@@ -17,26 +17,63 @@ game_loop(GameState, Player1, Player2, TurnCount, PieRule) :-
         nl, format("Game over! Winner: ~w~n", [Winner])
     ;
         GameState = state(_, CurrentPlayer),
-                      % Check if TurnCount is 2 and perform an action
-        (TurnCount =:= 2 ->
-            nl, write('Would you like to change colors with your opponent? y/n '),
-                read(Answer),
-                NewPieRule = Answer,
-                (Answer = 'y') -> game_loop(GameState, Player1, Player2, TurnCount +1, NewPieRule)
-        ;
-            NewPieRule = PieRule % Continue if TurnCount is not 2
-        ),
-        % Determine CurrentPlayerType based on PieRule
-        ((PieRule = 'y', CurrentPlayer = black ; PieRule \= 'y', CurrentPlayer = white) ->
-            CurrentPlayerType = Player1
-        ;
-            CurrentPlayerType = Player2
-        ),
-        choose_move(GameState, CurrentPlayerType, Move),
-        move(GameState, Move, TempGameState),
-        handle_line_of_three(TempGameState, CurrentPlayerType, NewGameState),
-         NewTurnCount is TurnCount + 1, 
-        game_loop(NewGameState, Player1, Player2, NewTurnCount, NewPieRule)
+        handle_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule)
+    ).
+
+handle_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule) :-
+    (TurnCount =:= 2 ->
+        ask_pie_rule(GameState, Player1, Player2, TurnCount, PieRule)
+    ;
+        continue_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule)
+    ).
+
+ask_pie_rule(GameState, Player1, Player2, TurnCount, PieRule) :-
+    (is_easy_computer(Player1) ->
+        random_pie_rule_response(Response),
+        nl, format("Computer chooses to ~w change colors.~n", [Response]),
+        handle_pie_rule_response(GameState, Player1, Player2, TurnCount, Response)
+    ;
+        nl, write('Would you like to change colors with your opponent? y/n '),
+        read(Answer),
+        handle_pie_rule_response(GameState, Player1, Player2, TurnCount, Answer)
+    ).
+
+% Check if the current player is a computer in easy mode
+is_easy_computer(computer(1)).
+
+% Randomly decide 'y' or 'n' using SWI-Prolog's random/1
+random_pie_rule_response('y') :-
+    random(0.0, 1.0, Rand),  % Generates a random float between 0.0 and 1.0
+    Rand < 0.5.
+random_pie_rule_response('n') :-
+    random(0.0, 1.0, Rand), 
+    Rand >= 0.5.
+
+handle_pie_rule_response(GameState, Player1, Player2, TurnCount, 'y') :-
+    NewTurnCount is TurnCount + 1,
+    game_loop(GameState, Player1, Player2, NewTurnCount, 'y').
+
+handle_pie_rule_response(GameState, Player1, Player2, TurnCount, 'n') :-
+    NewTurnCount is TurnCount + 1,
+    game_loop(GameState, Player1, Player2, NewTurnCount, 'n').
+
+handle_pie_rule_response(GameState, Player1, Player2, TurnCount, _) :-
+    write('Invalid choice, try again.'), nl,
+    ask_pie_rule(GameState, Player1, Player2, TurnCount, 'n').
+
+continue_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule) :-
+    determine_player_type(CurrentPlayer, Player1, Player2, PieRule, CurrentPlayerType),
+    choose_move(GameState, CurrentPlayerType, Move),
+    move(GameState, Move, TempGameState),
+    handle_line_of_three(TempGameState, CurrentPlayerType, NewGameState),
+    NewTurnCount is TurnCount + 1,
+    game_loop(NewGameState, Player1, Player2, NewTurnCount, PieRule).
+
+determine_player_type(CurrentPlayer, Player1, Player2, PieRule, CurrentPlayerType) :-
+    ( (PieRule = 'y', CurrentPlayer = black ; PieRule \= 'y', CurrentPlayer = white) ->
+        CurrentPlayerType = Player1
+    ;
+        CurrentPlayerType = Player2
     ).
 
 
