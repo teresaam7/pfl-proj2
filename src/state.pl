@@ -29,14 +29,22 @@ handle_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule) :-
     ).
 
 ask_pie_rule(GameState, Player1, Player2, TurnCount) :-
-    (is_easy_computer(Player1) ->
-        random_pie_rule_response(Response),
-        nl, format("Computer chooses to ~w change colors.~n", [Response]),
+    (Player1 = computer(2) ->
+        % Hard computer uses heuristic to decide
+        pie_rule_decision(GameState, Response),
+        nl, format("Computer chooses to ~w to switch places.~n", [Response]),
         handle_pie_rule_response(GameState, Player1, Player2, TurnCount, Response)
     ;
+    is_easy_computer(Player1) ->
+        % Easy computer uses random choice
+        random_pie_rule_response(Response),
+        nl, format("Computer chooses to ~w to switch places.~n", [Response]),
+        handle_pie_rule_response(GameState, Player1, Player2, TurnCount, Response)
+    ;
+        % Human player input
         repeat,  % Loop until valid input
         nl, write('(0 to exit)'),
-        nl, write('Would you like to change colors with your opponent? y/n : '),
+        nl, write('Would you like to switch places with your opponent? y/n : '),
         catch(read(Answer), _, fail),
         (
             Answer = 0 ->  % Exit condition
@@ -48,6 +56,27 @@ ask_pie_rule(GameState, Player1, Player2, TurnCount) :-
             write('Invalid choice! Please enter y, n.'), nl, fail
         )
     ).
+
+% Evaluate whether to apply the pie rule
+pie_rule_decision(state(Board, white), Response) :-
+    % Check if the center positions are occupied by White
+    central_positions(Central),
+    count_pieces(Board, white, Central, Count),
+    (Count > 0 -> Response = 'y'; Response = 'n').
+
+% Define the central positions of the board
+central_positions([(4, 4), (3, 4), (4, 3), (4, 5), (5, 4), (3, 3), (3, 5), (5, 3), (5, 5)]).
+
+% Count pieces of a specific player in specific positions
+count_pieces(Board, Player, Positions, Count) :-
+    findall(Position, (member(Position, Positions), is_player_at(Board, Position, Player)), Found),
+    length(Found, Count).
+
+% Check if a specific player occupies a given position
+is_player_at(Board, (Row, Col), Player) :-
+    nth1(Row, Board, BoardRow),
+    nth1(Col, BoardRow, Cell),
+    Cell = Player.
 
 
 % Check if the current player is a computer in easy mode
@@ -226,8 +255,8 @@ check_line(Line, RowIdx, Player, Result) :-
     findall((Row, Col),
         (
             nth1(Index, Line, Player),
-            Row = RowIdx,  % Row is fixed for rows
-            Col = Index    % Index determines the column
+            Row = RowIdx, 
+            Col = Index   
         ),
         Result).
 
