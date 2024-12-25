@@ -10,24 +10,38 @@ empty_row(Row) :-
     length(Row, 7),
     maplist(=(empty), Row).
 
-game_loop(GameState, Player1, Player2) :-
+game_loop(GameState, Player1, Player2, TurnCount, PieRule) :-
     display_game(GameState),
     game_over(GameState, Winner),
     (Winner \= none ->
         nl, format("Game over! Winner: ~w~n", [Winner])
     ;
         GameState = state(_, CurrentPlayer),
-        (CurrentPlayer = white -> CurrentPlayerType = Player1 ; CurrentPlayerType = Player2),
+                      % Check if TurnCount is 2 and perform an action
+        (TurnCount =:= 2 ->
+            nl, write('Would you like to change colors with your opponent? y/n '),
+                read(Answer),
+                NewPieRule = Answer
+        ;
+            NewPieRule = PieRule % Continue if TurnCount is not 2
+        ),
+        % Determine CurrentPlayerType based on PieRule
+        ((PieRule = 'y', CurrentPlayer = black ; PieRule \= 'y', CurrentPlayer = white) ->
+            CurrentPlayerType = Player1
+        ;
+            CurrentPlayerType = Player2
+        ),
         choose_move(GameState, CurrentPlayerType, Move),
         move(GameState, Move, TempGameState),
         handle_line_of_three(TempGameState, CurrentPlayerType, NewGameState),
-        game_loop(NewGameState, Player1, Player2)
+         NewTurnCount is TurnCount + 1, 
+        game_loop(NewGameState, Player1, Player2, NewTurnCount, NewPieRule)
     ).
 
 
 start_game(Player1, Player2) :-
     initial_state(GameState),
-    game_loop(GameState, Player1, Player2).
+    game_loop(GameState, Player1, Player2, 0, 'n').
 
 choose_move(GameState, computer(1), Move) :-
     valid_moves(GameState, Moves),
@@ -131,13 +145,15 @@ check_diagonal_line(Line, Player, Result) :-
              Col is Index), 
             Result).
 
-check_line(Line, Player, Result) :-
+check_line(Line, RowIdx, Player, Result) :-
     append(_, [Player, Player, Player|_], Line),
-    findall((Row, Col), 
-            (nth1(Index, Line, Player), 
-             Row is Index, 
-             Col is Index), 
-            Result).
+    findall((Row, Col),
+        (
+            nth1(Index, Line, Player),
+            Row = RowIdx,  % Row is fixed for rows
+            Col = Index    % Index determines the column
+        ),
+        Result).
 
 choose_two_to_remove(_, StackPos) :-
     write('Enter position tostack (e.g., (Rs, Cs)): '),
