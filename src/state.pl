@@ -35,7 +35,7 @@ ask_pie_rule(GameState, Player1, Player2, TurnCount) :-
         nl, format("Computer chooses to ~w to switch places.~n", [Response]),
         handle_pie_rule_response(GameState, Player1, Player2, TurnCount, Response)
     ;
-    is_easy_computer(Player1) ->
+     Player1 = computer(1)->
         % Easy computer uses random choice
         random_pie_rule_response(Response),
         nl, format("Computer chooses to ~w to switch places.~n", [Response]),
@@ -57,32 +57,25 @@ ask_pie_rule(GameState, Player1, Player2, TurnCount) :-
         )
     ).
 
-% Evaluate whether to apply the pie rule
+
 pie_rule_decision(state(Board, white), Response) :-
-    % Check if the center positions are occupied by White
     central_positions(Central),
     count_pieces(Board, white, Central, Count),
     (Count > 0 -> Response = 'y'; Response = 'n').
-
-% Define the central positions of the board
 central_positions([(4, 4), (3, 4), (4, 3), (4, 5), (5, 4), (3, 3), (3, 5), (5, 3), (5, 5)]).
 
-% Count pieces of a specific player in specific positions
+
 count_pieces(Board, Player, Positions, Count) :-
     findall(Position, (member(Position, Positions), is_player_at(Board, Position, Player)), Found),
     length(Found, Count).
 
-% Check if a specific player occupies a given position
+
 is_player_at(Board, (Row, Col), Player) :-
     nth1(Row, Board, BoardRow),
     nth1(Col, BoardRow, Cell),
     Cell = Player.
 
 
-% Check if the current player is a computer in easy mode
-is_easy_computer(computer(1)).
-
-% Randomly decide 'y' or 'n'  if it's a computer
 random_pie_rule_response('y') :-
     random(0.0, 1.0, Rand), 
     Rand < 0.5.
@@ -136,10 +129,10 @@ choose_move(GameState, human, Move) :-
     repeat,
     nl, write('(0 to exit)'),
     nl, write('Enter your move as (Row, Col): '),
-    catch(read(Input), _, fail),  % Catch invalid input formats
+    catch(read(Input), _, fail), 
     (
-        Input = 0 ->  % Exit condition
-        nl, write('Exiting the game. Goodbye!'), nl, Move = exit, !   % Terminate Prolog execution
+        Input = 0 ->  
+        nl, write('Exiting the game. Goodbye!'), nl, Move = exit, !   
     ;
         Input = (Row, Col), integer(Row), integer(Col), Row > 0, Row =< 7, Col > 0, Col =< 7 ->
         (valid_move(GameState, move(Row, Col)) ->
@@ -187,14 +180,12 @@ handle_line_of_three(state(Board, Player), PlayerType, state(NewBoard, Player)) 
     Lines \= [],
     (
         PlayerType = human ->
-            % Prompt the user to stack
             write('Lines of three found: '), write(Lines), nl,
             choose_two_to_remove(Lines, StackPos),
-            (StackPos = exit -> true ;  % Stop execution if user exits
+            (StackPos = exit -> true ; 
             select_removal(StackPos, Lines, ToRemove),
             update_board(Board, ToRemove, StackPos, NextPlayer, NewBoard))
         ;
-        % Automatically handle stacking for computer players
         PlayerType = computer(_) -> 
             choose_best_removal(Lines, ToRemove, StackPos),
             update_board(Board, ToRemove, StackPos, NextPlayer, NewBoard)
@@ -208,7 +199,6 @@ select_removal(StackPos, [Line|_], ToRemove) :-
 
 choose_best_removal([Line|_], ToRemove, StackPos) :-
     Line = [(R1, C1), (R2, C2), (R3, C3)],
-    % Validate same color
     nth1(R1, Board, Row1), nth1(C1, Row1, Player),
     nth1(R2, Board, Row2), nth1(C2, Row2, Player),
     nth1(R3, Board, Row3), nth1(C3, Row3, Player),
@@ -261,20 +251,19 @@ check_line(Line, RowIdx, Player, Result) :-
         Result).
 
 choose_two_to_remove(Lines, StackPos) :-
-    repeat,  % Loop until a valid input is provided
+    repeat, 
     nl, write('(0 to exit)'),
     nl, write('Enter position to stack (e.g., (Rs, Cs)) : '),
-    catch(read(Input), _, fail),  % Catch invalid input formats
+    catch(read(Input), _, fail),
     (
         Input = 0 ->  % Exit condition
-        nl, write('Exiting the game. Goodbye!'),  nl, StackPos = exit, !  % Terminate Prolog execution
+        nl, write('Exiting the game. Goodbye!'),  nl, StackPos = exit, !
     ;
-        Input = (Row, Col), integer(Row), integer(Col),  % Ensure input is integers
-        member(Line, Lines), member((Row, Col), Line) ->  % Verify input is part of a line of three
-        StackPos = (Row, Col),  % Assign valid position to StackPos
+        Input = (Row, Col), integer(Row), integer(Col), 
+        member(Line, Lines), member((Row, Col), Line) -> 
+        StackPos = (Row, Col), 
         nl, format("Position ~w selected for stacking.~n", [StackPos]), !
     ;
-        % Invalid input; provide feedback and retry
         write('Invalid position! Please enter a valid (Row, Col) from the lines of three.'), nl, fail
     ).
 
@@ -332,7 +321,7 @@ stack_symbol(black, x).
 board_full(Board) :-
     \+ (member(Row, Board), member(empty, Row)).
 
-% Determine the next player
+
 next_player(white, black).
 next_player(black, white).
 
@@ -342,82 +331,56 @@ best_move(state(Board, Player), Moves, BestMove) :-
     findall(Score-Move, (member(Move, Moves), evaluate_move(state(Board, Player), Move, Score)), ScoredMoves),
     max_member(_-BestMove, ScoredMoves).
 
-% Evaluate a move based on the game rules
 evaluate_move(state(Board, Player), move(Row, Col), Score) :-
-    % Simulate the move
     apply_move(Board, Row, Col, Player, NewBoard),
-    % Check for winning condition after the move
     (winning_move(state(NewBoard, Player)) ->
-        Score = 1000  % High score for immediate win
+        Score = 1000 
     ;
-        % Check if it blocks the opponent's win
         next_player(Player, Opponent),
         blocking_move(state(NewBoard, Opponent)) ->
-        Score = 500   % Medium score for blocking opponent
+        Score = 500   
     ;
-        % Default evaluation based on advantageous position
         heuristic_score(NewBoard, Player, Row, Col, Score)
     ).
 
-% Check if the move creates a winning line for the player
 winning_move(state(Board, Player)) :-
     line_of_stacks(Board, Player).
 
-% Check if the move blocks the opponent's win
+
 blocking_move(state(Board, Opponent)) :-
     line_of_stacks(Board, Opponent).
 
-% Calculate a heuristic score for the move
 heuristic_score(Board, Player, Row, Col, Score) :-
     center_bonus(Row, Col, CenterScore),
     potential_lines(Board, Player, Row, Col, LineScore),
     Score is CenterScore + LineScore.
 
-% Bonus for central positions
 center_bonus(Row, Col, Score) :-
     (Row > 2, Row < 6, Col > 2, Col < 6 ->
-        Score = 10  % Central positions are more valuable
+        Score = 10 
     ;
         Score = 0).
 
-% Score based on potential to form lines of three
 potential_lines(Board, Player, Row, Col, Score) :-
-    % Count how many lines of 2 exist near (Row, Col)
     findall(_, potential_line(Board, Player, Row, Col), Lines),
     length(Lines, Score).
 
-% Check if placing at (Row, Col) contributes to a line of 2
 potential_line(Board, Player, Row, Col) :-
-    % Extract adjacent cells to (Row, Col) in all directions
     adjacent_positions(Row, Col, Adjacent),
     member((AdjRow, AdjCol), Adjacent),
     nth1(AdjRow, Board, AdjRowList),
     nth1(AdjCol, AdjRowList, Player).
 
-% Generate adjacent positions on the board
-% Generate adjacent positions on the board
 adjacent_positions(Row, Col, Adjacent) :-
     findall((R, C),
         (between(Row-1, Row+1, TempR),
          between(Col-1, Col+1, TempC),
-         R is TempR,  % Ensure TempR is evaluated
-         C is TempC,  % Ensure TempC is evaluated
-         R > 0, R =< 7, C > 0, C =< 7, % Keep within board boundaries
-         (R, C) \= (Row, Col)),  % Exclude the current position
+         R is TempR,  
+         C is TempC, 
+         R > 0, R =< 7, C > 0, C =< 7, 
+         (R, C) \= (Row, Col)), 
         Adjacent).
 %----------------------------------------------------------------
-simulate_move(GameState, Move, Value) :-
-    move(GameState, Move, NewGameState),
-    value(NewGameState, _, Value).
-
-% Evaluate the game state (simple greedy heuristic)
-value(state(Board, Player), Player, Value) :-
-    count_pieces(Board, Player, Value).
-
-count_pieces(Board, Player, Count) :-
-    flatten(Board, Pieces),
-    include(=(Player), Pieces, PlayerPieces),
-    length(PlayerPieces, Count).
 
 % Extract all diagonals from a board
 diagonal(Board, Diagonals) :-
