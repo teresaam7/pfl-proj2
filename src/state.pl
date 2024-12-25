@@ -76,13 +76,14 @@ handle_pie_rule_response(GameState, Player1, Player2, TurnCount, _) :-
 
 continue_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule) :-
     determine_player_type(CurrentPlayer, Player1, Player2, PieRule, CurrentPlayerType),
-    choose_move(GameState, CurrentPlayerType, Move),
+    
+    handle_line_of_three(GameState, CurrentPlayerType, UpdatedGameState),
+    choose_move(UpdatedGameState, CurrentPlayerType, Move),
     (Move = exit -> true ;  
-    move(GameState, Move, TempGameState),
+    move(UpdatedGameState, Move, TempGameState),
     handle_line_of_three(TempGameState, CurrentPlayerType, NewGameState),
     NewTurnCount is TurnCount + 1,
     game_loop(NewGameState, Player1, Player2, NewTurnCount, PieRule)).
-
 
 determine_player_type(CurrentPlayer, Player1, Player2, PieRule, CurrentPlayerType) :-
     ( (PieRule = 'y', CurrentPlayer = black ; PieRule \= 'y', CurrentPlayer = white) ->
