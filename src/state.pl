@@ -186,7 +186,7 @@ handle_line_of_three(state(Board, Player), PlayerType, state(NewBoard, Player)) 
             select_removal(StackPos, Lines, ToRemove),
             update_board(Board, ToRemove, StackPos, NextPlayer, NewBoard))
         ;
-        PlayerType = computer(_) -> 
+        PlayerType = computer(_) ->
             choose_best_removal(Lines, ToRemove, StackPos),
             update_board(Board, ToRemove, StackPos, NextPlayer, NewBoard)
     ).
@@ -241,14 +241,16 @@ check_diagonal_line(Line, Player, Result) :-
             Result).
 
 check_line(Line, RowIdx, Player, Result) :-
-    append(_, [Player, Player, Player|_], Line),
-    findall((Row, Col),
-        (
-            nth1(Index, Line, Player),
-            Row = RowIdx, 
-            Col = Index   
-        ),
-        Result).
+    append(Beginning, [Player, Player, Player|_], Line),
+ length(Beginning, Offset),
+        O1 is Offset +1,
+        O2 is Offset +2,
+        O3 is Offset +3,
+    Result = [
+        (RowIdx,O1),
+        (RowIdx, O2),
+        (RowIdx, O3)
+    ].
 
 choose_two_to_remove(Lines, StackPos) :-
     repeat, 
