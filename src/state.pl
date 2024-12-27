@@ -348,18 +348,17 @@ winning_move(state(Board, Player)) :-
 
 
 blocking_move(state(Board, Opponent)) :-
-    line_of_stacks(Board, Opponent).
+    winning_move(state(Board, Opponent)).
 
 heuristic_score(Board, Player, Row, Col, Score) :-
     center_bonus(Row, Col, CenterScore),
     potential_lines(Board, Player, Row, Col, LineScore),
     Score is CenterScore + LineScore.
 
-center_bonus(Row, Col, Score) :-
-    (Row > 2, Row < 6, Col > 2, Col < 6 ->
-        Score = 10 
-    ;
-        Score = 0).
+center_bonus(Row, Col, 10) :-
+    Row > 2, Row < 6,
+    Col > 2, Col < 6.
+center_bonus(_, _, 0).
 
 potential_lines(Board, Player, Row, Col, Score) :-
     findall(_, potential_line(Board, Player, Row, Col), Lines),
@@ -380,6 +379,10 @@ adjacent_positions(Row, Col, Adjacent) :-
          R > 0, R =< 7, C > 0, C =< 7, 
          (R, C) \= (Row, Col)), 
         Adjacent).
+
+
+
+
 %----------------------------------------------------------------
 
 % Extract all diagonals from a board
