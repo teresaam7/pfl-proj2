@@ -149,20 +149,34 @@ choose_move(GameState, human, Move) :-
     repeat,
     nl, write('(0 to exit)'),
     nl, write('Enter your move as (Row, Col): '),
-    catch(read(Input), _, fail), 
-    (
-        Input = 0 ->  
-        nl, write('Exiting the game. Goodbye!'), nl, Move = exit, !   
-    ;
-        Input = (Row, Col), integer(Row), integer(Col), Row > 0, Row =< 7, Col > 0, Col =< 7 ->
-        (valid_move(GameState, move(Row, Col)) ->
-            Move = move(Row, Col), !
-        ;
-            write('Invalid move! That cell is already occupied or invalid.'), nl, fail
-        )
-    ;
-        write('Invalid input! Please enter (Row, Col) .'), nl, fail
-    ).
+    catch(read(Input), _, fail),
+    handle_move_input(GameState, Input, Move).
+
+handle_move_input(_, 0, exit).
+    
+handle_move_input(GameState, (Row, Col), Move) :-
+    valid_input(Row, Col),   % Check if the input is valid
+    valid_move(GameState, move(Row, Col)),  % Check if the move is valid
+    !,                       % Cut to avoid backtracking if we succeeded
+    Move = move(Row, Col).   % Bind the Move to the valid move
+
+handle_move_input(_, (Row, Col), _) :-
+    \+ valid_input(Row, Col),  % If input is invalid
+    write('Invalid input! Please enter (Row, Col) .'), nl,
+    fail.
+
+handle_move_input(GameState, (Row, Col), _) :-
+    valid_input(Row, Col),      % If input is valid but the move isn't
+    \+ valid_move(GameState, move(Row, Col)),
+    write('Invalid move! That cell is already occupied or invalid.'), nl,
+    fail.
+
+% Helper predicate to validate input ranges
+valid_input(Row, Col) :-
+    integer(Row), integer(Col),
+    Row > 0, Row =< 7,
+    Col > 0, Col =< 7.
+    
 
 
 
