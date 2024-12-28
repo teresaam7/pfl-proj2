@@ -63,9 +63,8 @@
 #### **General Rules**
 1. **Turn-Based Play**: Players alternate turns, taking one action per turn.
 2. **Actions Per Turn**: A player may:
-   - Place a piece on an empty cell.
-   - Move a stack (of one or two pieces) to an adjacent cell, adhering to movement restrictions.
-3. **Stack Formation**: A stack may contain **no more than two pieces** at any given time.
+   - Place a piece of their respective colour on an empty cell.
+   - check for a Stack Formation.
 
 #### **Stack Formation**
 When a **line of three or more pieces (not stacks)** of a player’s color is created in any direction, the following sequence must be executed during the same turn:
@@ -73,12 +72,22 @@ When a **line of three or more pieces (not stacks)** of a player’s color is cr
 1. **Choose a Line**: If multiple lines are created simultaneously, the player must choose one line of three or more pieces.
 2. **Remove Two Pieces**: From the chosen line, remove any two pieces, leaving one piece in place.
 3. **Create a Stack**: Add a new piece of the player’s color to the single piece left in place,  creating a **stack** of two pieces.
+A stack may contain **no more than two pieces** at any given time.
 
 #### **Winning Condition**
 - A player wins by forming a **line of three stacks** with two pieces each. Lines can be formed:
   - Horizontally
   - Vertically
   - Diagonally
+
+Sources regarding rules and game description: 
+
+https://boardgamegeek.com/boardgame/127989/lot
+
+https://boardgamegeek.com/video/164442/lot/lot-line-of-three-game-overview-and-rules-explanat
+
+https://boardgamegeek.com/filepage/217760/lot-rules-in-english
+
 
 
 ## Considerations for Game Extensions
