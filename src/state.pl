@@ -123,7 +123,7 @@ choose_move(GameState, computer(1), Move) :-
 
 choose_move(GameState, computer(2), Move) :-
     valid_moves(GameState, Moves),
-    best_move(GameState, Moves, Move).
+    best_greedy_move(GameState, Moves, Move).
 
 choose_move(GameState, human, Move) :-
     repeat,
@@ -327,63 +327,169 @@ board_full(Board) :-
 next_player(white, black).
 next_player(black, white).
 
-%--------------------------------------------------------------------
-% Find the best move for a player using a greedy strategy
-best_move(state(Board, Player), Moves, BestMove) :-
-    findall(Score-Move, (member(Move, Moves), evaluate_move(state(Board, Player), Move, Score)), ScoredMoves),
-    max_member(_-BestMove, ScoredMoves).
+%----------------------------------------------------------------
 
-evaluate_move(state(Board, Player), move(Row, Col), Score) :-
+% Encontrar o melhor movimento baseado em estratégia greedy
+best_greedy_move(state(Board, Player), Moves, BestMove) :-
+    findall(Score-Move, (
+        member(Move, Moves),
+        evaluate_greedy_move(state(Board, Player), Move, Score)
+    ), ScoredMoves),
+    % Select move with highest score
+    keysort(ScoredMoves, Sorted),
+    last(Sorted, _-BestMove).
+
+% Evaluate a potential move with weighted priorities
+evaluate_greedy_move(state(Board, Player), move(Row, Col), FinalScore) :-
     apply_move(Board, Row, Col, Player, NewBoard),
-    (winning_move(state(NewBoard, Player)) ->
-        Score = 1000 
+    next_player(Player, Opponent),
+    
+    (blocks_opponent_line(Board, Row, Col, Opponent, BlockingScore)
+    ; BlockingScore = 0),
+    
+    (can_form_own_line(Board, Row, Col, Player, FormLineScore)
+    ; FormLineScore = 0),
+    
+    calculate_proximity_score(Board, Row, Col, Opponent, ProximityScore),
+    
+    % Weight the different factors
+    FinalScore is BlockingScore * 1000 + FormLineScore * 800 + ProximityScore * 100.
+
+% Check if move blocks opponent from forming a line of three
+blocks_opponent_line(Board, Row, Col, Opponent, Score) :-
+    % Find all possible lines of two for opponent
+    findall(Line, (
+        find_line_of_two(Board, Opponent, Line),
+        can_block_line(Line, Row, Col)
+    ), BlockingLines),
+    length(BlockingLines, Count),
+    (Count > 0 -> Score = Count ; Score = 0).
+
+find_line_of_two(Board, Player, Line) :-
+    % Check horizontal lines
+    (check_horizontal_two(Board, Player, Line);
+     % Check vertical lines
+     check_vertical_two(Board, Player, Line);
+     % Check diagonal lines
+     check_diagonals_of_two(Board, Player, Line)).
+
+% Check horizontal sequences of two pieces
+check_horizontal_two(Board, Player, [(Row,Col1), (Row,Col2)]) :-
+    between(1, 7, Row),
+    between(1, 6, Col1),
+    Col2 is Col1 + 1,
+    nth1(Row, Board, RowList),
+    nth1(Col1, RowList, Player),
+    nth1(Col2, RowList, Player),
+    (Col1 > 1, Col3 is Col1 - 1, nth1(Col3, RowList, empty);
+     Col2 < 7, Col3 is Col2 + 1, nth1(Col3, RowList, empty)).
+
+% Check vertical sequences of two pieces
+check_vertical_two(Board, Player, [(Row1,Col), (Row2,Col)]) :-
+    between(1, 6, Row1),
+    between(1, 7, Col),
+    Row2 is Row1 + 1,
+    nth1(Row1, Board, Row1List),
+    nth1(Row2, Board, Row2List),
+    nth1(Col, Row1List, Player),
+    nth1(Col, Row2List, Player),
+    (Row1 > 1, Row3 is Row1 - 1, nth1(Row3, Board, Row3List), nth1(Col, Row3List, empty);
+     Row2 < 7, Row3 is Row2 + 1, nth1(Row3, Board, Row3List), nth1(Col, Row3List, empty)).
+
+can_block_line([(R1,C1), (R2,C2)], Row, Col) :-
+    % Calculate the position that would complete the line
+    predict_third_position((R1,C1), (R2,C2), (Row,Col)).
+
+can_form_own_line(Board, Row, Col, Player, Score) :-
+    % Count how many potential lines this move could form
+    findall(1, (
+        find_line_of_two(Board, Player, Line),
+        can_complete_line(Line, Row, Col)
+    ), Counts),
+    length(Counts, Score).
+
+can_complete_line([(R1,C1), (R2,C2)], Row, Col) :-
+    DR is R2 - R1,
+    DC is C2 - C1,
+    
+    (
+        Row =:= R1 - DR,
+        Col =:= C1 - DC
     ;
-        next_player(Player, Opponent),
-        blocking_move(state(NewBoard, Opponent)) ->
-        Score = 500   
-    ;
-        heuristic_score(NewBoard, Player, Row, Col, Score)
+        Row =:= R2 + DR,
+        Col =:= C2 + DC
+    ),
+    Row > 0, Row =< 7, Col > 0, Col =< 7.
+
+calculate_proximity_score(Board, Row, Col, Opponent, Score) :-
+    findall(Distance, (
+        find_opponent_piece(Board, Opponent, OppRow, OppCol),
+        calculate_distance((Row,Col), (OppRow,OppCol), Distance)
+    ), Distances),
+    (Distances = [] -> Score = 0 ;
+    min_list(Distances, MinDistance),
+    % Convert distance to score (closer = higher score)
+    Score is max(0, 7 - MinDistance)).
+
+% Helper to find opponent pieces on the board
+find_opponent_piece(Board, Opponent, Row, Col) :-
+    between(1, 7, Row),
+    between(1, 7, Col),
+    nth1(Row, Board, RowList),
+    nth1(Col, RowList, Opponent).
+
+% Calculate Manhattan distance between two positions
+calculate_distance((R1,C1), (R2,C2), Distance) :-
+    Distance is abs(R1-R2) + abs(C1-C2).
+
+min_list([H|T], Min) :- min_list(T, H, Min).
+min_list([], Min, Min).
+min_list([H|T], CurrentMin, Min) :-
+    H < CurrentMin,
+    min_list(T, H, Min).
+min_list([H|T], CurrentMin, Min) :-
+    H >= CurrentMin,
+    min_list(T, CurrentMin, Min).
+
+% Encontrar linhas de duas peças
+find_lines_of_two(Board, Player, Lines) :-
+    setof(Line, (valid_line_of_two(Board, Player, Line)), Lines), !.
+find_lines_of_two(_, _, []).
+
+check_diagonals_of_two(Board, Player, [(R1, C1), (R2, C2)]) :-
+    between(1, 7, R1),
+    between(1, 7, C1),
+    between(1, 7, R2),
+    between(1, 7, C2),
+    abs(R2 - R1) =:= 1,          % As posições devem ser adjacentes na linha
+    abs(C2 - C1) =:= 1,          % As posições devem ser adjacentes na coluna
+    nth1(R1, Board, Row1),
+    nth1(R2, Board, Row2),
+    nth1(C1, Row1, Player),
+    nth1(C2, Row2, Player),
+    % Validar posição antes ou depois da sequência
+    (   % Posição antes da sequência
+        R3 is R1 - (R2 - R1),
+        C3 is C1 - (C2 - C1),
+        validate_diagonal_position(Board, R3, C3)
+    ;   % Posição depois da sequência
+        R3 is R2 + (R2 - R1),
+        C3 is C2 + (C2 - C1),
+        validate_diagonal_position(Board, R3, C3)
     ).
 
-winning_move(state(Board, Player)) :-
-    line_of_stacks(Board, Player).
+% Validar posições de uma diagonal
+validate_diagonal_position(Board, Row, Col) :-
+    Row > 0,
+    Row =< 7,
+    Col > 0,
+    Col =< 7,
+    nth1(Row, Board, RowList),
+    nth1(Col, RowList, empty).
 
 
-blocking_move(state(Board, Opponent)) :-
-    winning_move(state(Board, Opponent)).
-
-heuristic_score(Board, Player, Row, Col, Score) :-
-    center_bonus(Row, Col, CenterScore),
-    potential_lines(Board, Player, Row, Col, LineScore),
-    Score is CenterScore + LineScore.
-
-center_bonus(Row, Col, 10) :-
-    Row > 2, Row < 6,
-    Col > 2, Col < 6.
-center_bonus(_, _, 0).
-
-potential_lines(Board, Player, Row, Col, Score) :-
-    findall(_, potential_line(Board, Player, Row, Col), Lines),
-    length(Lines, Score).
-
-potential_line(Board, Player, Row, Col) :-
-    adjacent_positions(Row, Col, Adjacent),
-    member((AdjRow, AdjCol), Adjacent),
-    nth1(AdjRow, Board, AdjRowList),
-    nth1(AdjCol, AdjRowList, Player).
-
-adjacent_positions(Row, Col, Adjacent) :-
-    findall((R, C),
-        (between(Row-1, Row+1, TempR),
-         between(Col-1, Col+1, TempC),
-         R is TempR,  
-         C is TempC, 
-         R > 0, R =< 7, C > 0, C =< 7, 
-         (R, C) \= (Row, Col)), 
-        Adjacent).
-
-
-
+heuristic_distance((R1, C1), (R2, C2), Distance) :-
+    Distance is abs(R1 - R2) + abs(C1 - C2).
 
 %----------------------------------------------------------------
 
@@ -450,7 +556,6 @@ between(Low, High, Value) :-
     Low < High,
     Next is Low + 1,
     between(Next, High, Value).
-
 
 
 
