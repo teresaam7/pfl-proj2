@@ -397,7 +397,7 @@ next_player(black, white).
 
 %----------------------------------------------------------------
 
-% Encontrar o melhor movimento baseado em estratÃ©gia greedy
+% Encontrar o melhor movimento baseado em estratégia greedy
 best_greedy_move(state(Board, Player), Moves, BestMove) :-
     findall(Score-Move, (
         member(Move, Moves),
@@ -668,6 +668,5 @@ between(Low, High, Value) :-
     Low < High,
     Next is Low + 1,
     between(Next, High, Value).
-
 
 

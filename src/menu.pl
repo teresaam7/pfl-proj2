@@ -34,29 +34,30 @@ main_menu :-
 
 
 handle_menu_choice(1) :- start_game(human, human).
-handle_menu_choice(2) :- select_difficulty(Difficulty, 2), start_game(human, computer(Difficulty,2)).
-handle_menu_choice(3) :- select_difficulty(D1,3), select_difficulty(D2,3), start_game(computer(D1), computer(D2)).
+handle_menu_choice(2) :- select_difficulty(Difficulty), start_game(human, computer(Difficulty)).
+handle_menu_choice(3) :- select_difficulty(D1), select_difficulty(D2), start_game(computer(D1), computer(D2)).
 handle_menu_choice(4) :- nl, write('Exiting game. Goodbye!'), nl.
 handle_menu_choice(_) :- nl, write('Invalid choice, try again.'), nl, main_menu.
 
 % Difficulty selection
-select_difficulty(Difficulty, Menu_Choice) :-
+select_difficulty(1) :-
     nl, write('Select difficulty level:'), nl,
     write('1. Easy (Random moves)'), nl,
     write('2. Hard (Greedy moves)'), nl,
     write('Enter your choice: '),
-    read(Choice),
-    handle_choice(Choice, Difficulty, Menu_Choice).
+    read(1),
+    nl, write('You selected Easy (Random moves).'), nl.
 
-handle_choice(1, 1,_).
-handle_choice(2,2,_).
-handle_choice(_, _, Menu_Choice) :-
-    nl,write('Invalid Input! '),nl,
-    handle_menu_choice(Menu_Choice).
-    
-    
+select_difficulty(2) :-
+    nl, write('Select difficulty level:'), nl,
+    write('1. Easy (Random moves)'), nl,
+    write('2. Hard (Greedy moves)'), nl,
+    write('Enter your choice: '),
+    read(2),
+    nl, write('You selected Hard (Greedy moves).'), nl.
 
-
-
+select_difficulty(Difficulty) :-
+    nl, write('Invalid choice. Please select 1 (Easy) or 2 (Hard).'), nl,
+    select_difficulty(Difficulty).
 
 
