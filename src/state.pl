@@ -11,9 +11,9 @@ empty_row(Row) :-
 
 % Clause when the game is over (Winner is not 'none').
 game_loop(GameState, _, _, _, _) :-
-    display_game(GameState),
     game_over(GameState, Winner),
     Winner \= none,
+    display_game(GameState),
     nl, format("Game over! Winner: ~w~n", [Winner]).
 
 % Clause when the game is not over.
