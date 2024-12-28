@@ -39,6 +39,7 @@ handle_menu_choice(3) :- select_difficulty(D1), select_difficulty(D2), start_gam
 handle_menu_choice(4) :- nl, write('Exiting game. Goodbye!'), nl.
 handle_menu_choice(_) :- nl, write('Invalid choice, try again.'), nl, main_menu.
 
+
 % Difficulty selection
 select_difficulty(Difficulty) :-
     nl, write('Select difficulty level:'), nl,
@@ -46,8 +47,15 @@ select_difficulty(Difficulty) :-
     write('2. Hard (Greedy moves)'), nl,
     write('Enter your choice: '),
     read(Choice),
-    (Choice = 1 -> Difficulty = 1 ; Difficulty = 2).
+    validate_difficulty(Choice, Difficulty).
 
+validate_difficulty(1, 1) :-
+    nl, write('You selected Easy (Random moves).'), nl, !.
 
+validate_difficulty(2, 2) :-
+    nl, write('You selected Hard (Greedy moves).'), nl, !.
 
+validate_difficulty(_, Difficulty) :-
+    nl, write('Invalid choice. Please select 1 (Easy) or 2 (Hard).'), nl,
+    select_difficulty(Difficulty).
 

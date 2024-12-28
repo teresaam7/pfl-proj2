@@ -52,14 +52,11 @@ ask_pie_rule(GameState, computer(1), Player2, TurnCount) :-
 % Clause for handling pie rule when Player1 is a human player.
 ask_pie_rule(GameState, Player1, Player2, TurnCount) :-
     repeat,
-    nl, write('(0 to exit)'),
     nl, write('Would you like to switch places with your opponent? y/n : '),
     catch(read(Answer), _, fail),
-    process_human_pie_response(Answer, GameState, Player1, Player2, TurnCount).
+    process_human_pie_response(Answer, GameState, Player1, Player2, TurnCount),!.
 
 % Handle human input for pie rule.
-process_human_pie_response(0, _, _, _, _) :-
-    nl, write('Exiting the game. Goodbye!'), nl, !, fail.
 
 process_human_pie_response(Answer, GameState, Player1, Player2, TurnCount) :-
     member(Answer, ['y', 'n']),
@@ -382,8 +379,9 @@ check_columns_stacks(Board, Stack) :-
 check_diagonals_stacks(Board, Stack) :-
     diagonal(Board, Diagonals),
     member(Diagonal, Diagonals),
-    append(_, [Stack, Stack, Stack|_], Diagonal).
-
+    % Extract just the values from the diagonal positions
+    findall(Value, member((Value,_), Diagonal), Values),
+    append(_, [Stack, Stack, Stack|_], Values).
 
 stack_symbol(white, 8).
 stack_symbol(black, x).
@@ -397,7 +395,7 @@ next_player(black, white).
 
 %----------------------------------------------------------------
 
-% Encontrar o melhor movimento baseado em estratÃ©gia greedy
+% Encontrar o melhor movimento baseado em estratégia greedy
 best_greedy_move(state(Board, Player), Moves, BestMove) :-
     findall(Score-Move, (
         member(Move, Moves),
