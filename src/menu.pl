@@ -39,6 +39,7 @@ handle_menu_choice(3) :- select_difficulty(D1), select_difficulty(D2), start_gam
 handle_menu_choice(4) :- nl, write('Exiting game. Goodbye!'), nl.
 handle_menu_choice(_) :- nl, write('Invalid choice, try again.'), nl, main_menu.
 
+
 % Difficulty selection
 select_difficulty(1) :-
     nl, write('Select difficulty level:'), nl,

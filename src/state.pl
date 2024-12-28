@@ -382,8 +382,9 @@ check_columns_stacks(Board, Stack) :-
 check_diagonals_stacks(Board, Stack) :-
     diagonal(Board, Diagonals),
     member(Diagonal, Diagonals),
-    append(_, [Stack, Stack, Stack|_], Diagonal).
-
+    % Extract just the values from the diagonal positions
+    findall(Value, member((Value,_), Diagonal), Values),
+    append(_, [Stack, Stack, Stack|_], Values).
 
 stack_symbol(white, 8).
 stack_symbol(black, x).
