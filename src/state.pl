@@ -400,8 +400,26 @@ can_block_line([(R1,C1), (R2,C2)], Row, Col) :-
     % Calculate the position that would complete the line
     predict_third_position((R1,C1), (R2,C2), (Row,Col)).
 
+predict_third_position((R1, C1), (R2, C2), (R3, C3)) :-
+    (   R1 = R2, R3 = R1,
+        (C3 is C1 - 1; C3 is C2 + 1)
+    );
+    (   C1 = C2, C3 = C1,
+        (R3 is R1 - 1; R3 is R2 + 1)
+    );
+    (   
+        abs(DR) =:= abs(DC), 
+        (   
+            R3 is R1 - DR,
+            C3 is C1 - DC
+        ;  
+            R3 is R2 + DR,
+            C3 is C2 + DC
+        )
+    ).
+
+
 can_form_own_line(Board, Row, Col, Player, Score) :-
-    % Count how many potential lines this move could form
     findall(1, (
         find_line_of_two(Board, Player, Line),
         can_complete_line(Line, Row, Col)
@@ -451,41 +469,57 @@ min_list([H|T], CurrentMin, Min) :-
     H >= CurrentMin,
     min_list(T, CurrentMin, Min).
 
-% Encontrar linhas de duas peças
 find_lines_of_two(Board, Player, Lines) :-
     setof(Line, (valid_line_of_two(Board, Player, Line)), Lines), !.
 find_lines_of_two(_, _, []).
 
+% Diagonal descendent
 check_diagonals_of_two(Board, Player, [(R1, C1), (R2, C2)]) :-
     between(1, 7, R1),
     between(1, 7, C1),
-    between(1, 7, R2),
-    between(1, 7, C2),
-    abs(R2 - R1) =:= 1,          % As posições devem ser adjacentes na linha
-    abs(C2 - C1) =:= 1,          % As posições devem ser adjacentes na coluna
+    R2 is R1 + 1,
+    C2 is C1 + 1,
     nth1(R1, Board, Row1),
     nth1(R2, Board, Row2),
     nth1(C1, Row1, Player),
     nth1(C2, Row2, Player),
-    % Validar posição antes ou depois da sequência
-    (   % Posição antes da sequência
-        R3 is R1 - (R2 - R1),
-        C3 is C1 - (C2 - C1),
+    (   
+        R3 is R1 - 1,
+        C3 is C1 - 1,
         validate_diagonal_position(Board, R3, C3)
-    ;   % Posição depois da sequência
-        R3 is R2 + (R2 - R1),
-        C3 is C2 + (C2 - C1),
+    ;   
+        R3 is R2 + 1,
+        C3 is C2 + 1,
         validate_diagonal_position(Board, R3, C3)
     ).
 
-% Validar posições de uma diagonal
+% Diagonal ascendent
+check_diagonals_of_two(Board, Player, [(R1, C1), (R2, C2)]) :-
+    between(1, 7, R1),
+    between(1, 7, C1),
+
+    R2 is R1 - 1,
+    C2 is C1 + 1,
+    nth1(R1, Board, Row1),
+    nth1(R2, Board, Row2),
+    nth1(C1, Row1, Player),
+    nth1(C2, Row2, Player),
+    (   
+        R3 is R1 + 1,
+        C3 is C1 - 1,
+        validate_diagonal_position(Board, R3, C3)
+    ;   
+        R3 is R2 - 1,
+        C3 is C2 + 1,
+        validate_diagonal_position(Board, R3, C3)
+    ).
+
 validate_diagonal_position(Board, Row, Col) :-
-    Row > 0,
-    Row =< 7,
-    Col > 0,
-    Col =< 7,
+    Row > 0, Row =< 7,
+    Col > 0, Col =< 7,
     nth1(Row, Board, RowList),
     nth1(Col, RowList, empty).
+
 
 
 heuristic_distance((R1, C1), (R2, C2), Distance) :-
