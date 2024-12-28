@@ -90,7 +90,13 @@ When a **line of three or more pieces (not stacks)** of a player’s color is cr
 ### Game Configuration Representation
 - Initial configuration is represented using a predicate `initial_state/2`. For example:
   ```prolog
-  initial_state([empty, empty, ...], player1).
+    [[empty, empty, empty, empty, empty, empty, empty],
+     [empty, empty, empty, empty, empty, empty, empty],
+     [empty, empty, empty, empty, empty, empty, empty],
+     [empty, empty, empty, empty, empty, empty, empty],
+     [empty, empty, empty, empty, empty, empty, empty],
+     [empty, empty, empty, empty, empty, empty, empty],
+     [empty, empty, empty, empty, empty, empty, empty]]
   ```
 - The board is represented as a list of cells, with each cell being either `empty`, `piece(Player)`, or `stack(Player, Height)`.
 
@@ -123,24 +129,76 @@ Example:
 state([empty, stack(player1, 2), ...], player2).
 ```
 
-### Move Representation
-- Moves are represented as:
-  ```prolog
-  move(From, To).
-  ```
-  where `From` and `To` are coordinates (e.g., `(3, 4)` for row 3, column 4).
+*Final state with a possible line of three.*
 
-- Moves are validated using the `valid_move/3` predicate.
+### Game state visualization
 
-### User Interaction
-- A menu system allows users to select:
-  1. Game mode (e.g., Human vs AI).
-  2. Difficulty level.
+The game visualization includes helper predicates that manage the game's user interface, focusing on the board display and player interaction.
 
-- Input validation ensures only valid moves are accepted:
-  ```prolog
-  read_move(From, To), validate_move(From, To).
-  ```
+- The **game state** can be displayed using the **displayGame/1** predicate, which outputs the current board to the user in a readable format.
+
+#### Initializing the Game
+
+The game starts with the predicate **initialState/1**, which sets up the board and assigns the first player randomly.
+
+#### Displaying the Game
+
+The board is displayed with **displayGame/1**, which shows the board layout using **boardLine/3** to print each row and **displayColumns/1** to show the column headers.
+
+### Move Execution
+
+The **move/3** predicate handles both placing a piece and shifting a piece:
+
+    move(+GameState, +Move, -NewGameState)
+
+This will validate and apply a move if it's legal.
+
+#### Move Types
+
+There are **two types of moves**:
+1. **Place a piece**: Adds a new piece to an empty cell.
+2. **Shift a piece**: Moves a piece to an adjacent empty cell.
+
+The **move/3** predicate is split into different validation rules for each type, ensuring that each move is valid.
+
+### Game Over
+
+The game checks for a win condition using the **gameOver/2** predicate:
+
+    gameOver(+GameState, -Winner)
+
+The game will end when a player has a line of three pieces stacked in a row (either horizontally, vertically, or diagonally). The predicate checks all possible win conditions on the board.
+
+### List of Valid Moves
+
+To determine the valid moves for a player, the **validMoves/2** predicate is used:
+
+    validMoves(+GameState, -Moves)
+
+This predicate will return a list of all valid moves based on the current board state.
+
+### Game State Evaluation
+
+The **evaluateBoard/2** predicate evaluates the board position based on how close each player is to forming a line of three:
+
+    evaluateBoard(+GameState, -Value)
+
+The evaluation considers:
+- How many pieces the player is missing to complete a line.
+- How many pieces the opponent is missing to complete their line.
+
+The evaluation helps guide the AI to make optimal decisions.
+
+### Computer Move
+
+The **chooseMove/3** predicate allows the computer to decide on its next move:
+
+    chooseMove(+GameState, +Level, -Move)
+
+The bot selects a move based on the difficulty level:
+- **Easy**: Selects a random move.
+- **Hard**: Chooses the best move using a greedy algorithm that evaluates the board.
+
 
 ## Conclusions
 ### Summary
