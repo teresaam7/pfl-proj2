@@ -9,59 +9,77 @@ empty_row(Row) :-
     length(Row, 7),
     maplist(=(empty), Row).
 
-game_loop(GameState, Player1, Player2, TurnCount, PieRule) :-
+% Clause when the game is over (Winner is not 'none').
+game_loop(GameState, _, _, _, _) :-
     display_game(GameState),
     game_over(GameState, Winner),
-    (Winner \= none ->
-        nl, format("Game over! Winner: ~w~n", [Winner])
-    ;
-        GameState = state(_, CurrentPlayer),
-        handle_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule)
-    ).
+    Winner \= none,
+    nl, format("Game over! Winner: ~w~n", [Winner]).
+
+% Clause when the game is not over.
+game_loop(GameState, Player1, Player2, TurnCount, PieRule) :-
+    display_game(GameState),
+    game_over(GameState, none),
+    GameState = state(_, CurrentPlayer),
+    handle_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule).
+
+% Clause for exiting the game.
 game_loop(_, _, _, _, _) :-
     nl, write('Game exited. Thank you for playing!'), !.
 
+% Clause for handling turn when its the second turn (Pie rule applies).
+handle_turn(GameState, Player1, Player2, _, TurnCount, _) :-
+    TurnCount =:= 2,
+    ask_pie_rule(GameState, Player1, Player2, TurnCount).
+
+% Clause for handling turn in all other cases.
 handle_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule) :-
-    (TurnCount =:= 2 ->
-        ask_pie_rule(GameState, Player1, Player2, TurnCount)
-    ;
-        continue_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule)
-    ).
+    TurnCount \= 2,
+    continue_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule).
 
+% Clause for handling pie rule when Player1 is a hard computer.
+ask_pie_rule(GameState, computer(2), Player2, TurnCount) :-
+    pie_rule_decision(GameState, Response),
+    nl, format("Computer chooses to ~w to switch places.~n", [Response]),
+    handle_pie_rule_response(GameState, computer(2), Player2, TurnCount, Response).
+
+% Clause for handling pie rule when Player1 is an easy computer.
+ask_pie_rule(GameState, computer(1), Player2, TurnCount) :-
+    random_pie_rule_response(Response),
+    nl, format("Computer chooses to ~w to switch places.~n", [Response]),
+    handle_pie_rule_response(GameState, computer(1), Player2, TurnCount, Response).
+
+% Clause for handling pie rule when Player1 is a human player.
 ask_pie_rule(GameState, Player1, Player2, TurnCount) :-
-    (Player1 = computer(2) ->
-        % Hard computer uses heuristic to decide
-        pie_rule_decision(GameState, Response),
-        nl, format("Computer chooses to ~w to switch places.~n", [Response]),
-        handle_pie_rule_response(GameState, Player1, Player2, TurnCount, Response)
-    ;
-     Player1 = computer(1)->
-        % Easy computer uses random choice
-        random_pie_rule_response(Response),
-        nl, format("Computer chooses to ~w to switch places.~n", [Response]),
-        handle_pie_rule_response(GameState, Player1, Player2, TurnCount, Response)
-    ;
-        % Human player input
-        repeat,  % Loop until valid input
-        nl, write('(0 to exit)'),
-        nl, write('Would you like to switch places with your opponent? y/n : '),
-        catch(read(Answer), _, fail),
-        (
-            Answer = 0 ->  % Exit condition
-            nl, write('Exiting the game. Goodbye!'), nl, !, fail   % Terminate Prolog execution
-        ;
-            member(Answer, ['y', 'n']) ->  % Valid pie rule input
-            handle_pie_rule_response(GameState, Player1, Player2, TurnCount, Answer), !
-        ;
-            write('Invalid choice! Please enter y, n.'), nl, fail
-        )
-    ).
+    repeat,
+    nl, write('(0 to exit)'),
+    nl, write('Would you like to switch places with your opponent? y/n : '),
+    catch(read(Answer), _, fail),
+    process_human_pie_response(Answer, GameState, Player1, Player2, TurnCount).
 
+% Handle human input for pie rule.
+process_human_pie_response(0, _, _, _, _) :-
+    nl, write('Exiting the game. Goodbye!'), nl, !, fail.
 
-pie_rule_decision(state(Board, white), Response) :-
+process_human_pie_response(Answer, GameState, Player1, Player2, TurnCount) :-
+    member(Answer, ['y', 'n']),
+    handle_pie_rule_response(GameState, Player1, Player2, TurnCount, Answer), !.
+
+process_human_pie_response(_, _, _, _, _) :-
+    write('Invalid choice! Please enter y, n.'), nl, fail.
+
+% Clause when there are pieces in central positions.
+pie_rule_decision(state(Board, white), 'y') :-
     central_positions(Central),
     count_pieces(Board, white, Central, Count),
-    (Count > 0 -> Response = 'y'; Response = 'n').
+    Count > 0.
+
+% Clause when there are no pieces in central positions.
+pie_rule_decision(state(Board, white), 'n') :-
+    central_positions(Central),
+    count_pieces(Board, white, Central, Count),
+    Count =< 0.
+
 central_positions([(4, 4), (3, 4), (4, 3), (4, 5), (5, 4), (3, 3), (3, 5), (5, 3), (5, 5)]).
 
 
@@ -105,13 +123,15 @@ continue_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule) :-
     NewTurnCount is TurnCount + 1,
     game_loop(NewGameState, Player1, Player2, NewTurnCount, PieRule)).
 
-determine_player_type(CurrentPlayer, Player1, Player2, PieRule, CurrentPlayerType) :-
-    ( (PieRule = 'y', CurrentPlayer = black ; PieRule \= 'y', CurrentPlayer = white) ->
-        CurrentPlayerType = Player1
-    ;
-        CurrentPlayerType = Player2
-    ).
+% Clause for determining player type when PieRule is 'y' and CurrentPlayer is black.
+determine_player_type(black, Player1, _, 'y', Player1).
 
+% Clause for determining player type when PieRule is not 'y' and CurrentPlayer is white.
+determine_player_type(white, Player1, _, PieRule, Player1) :-
+    PieRule \= 'y'.
+
+% Clause for determining player type for all other cases.
+determine_player_type(_, _, Player2, _, Player2).
 
 start_game(Player1, Player2) :-
     initial_state(GameState),
@@ -174,23 +194,34 @@ valid_position(Board, Row, Col) :-
     nth1(Col, BoardRow, Cell),
     Cell = empty.
 
-handle_line_of_three(state(Board, Player), PlayerType, state(NewBoard, Player)) :-
+% Clause for handling the line of three when PlayerType is human.
+handle_line_of_three(state(Board, Player), human, state(NewBoard, Player)) :-
     next_player(Player, NextPlayer),
     find_lines_of_three(Board, NextPlayer, Lines),
     Lines \= [],
-    (
-        PlayerType = human ->
-            write('Lines of three found: '), write(Lines), nl,
-            choose_two_to_remove(Lines, StackPos),
-            (StackPos = exit -> true ; 
-            select_removal(StackPos, Lines, ToRemove),
-            update_board(Board, ToRemove, StackPos, NextPlayer, NewBoard))
-        ;
-        PlayerType = computer(_) ->
-            choose_best_removal(Lines, ToRemove, StackPos),
-            update_board(Board, ToRemove, StackPos, NextPlayer, NewBoard)
-    ).
+    write('Lines of three found: '), write(Lines), nl,
+    choose_two_to_remove(Lines, StackPos),
+    handle_removal(StackPos, Board, Lines, NextPlayer, NewBoard).
+
+% Clause for handling the line of three when PlayerType is computer.
+handle_line_of_three(state(Board, Player), computer(_), state(NewBoard, Player)) :-
+    next_player(Player, NextPlayer),
+    find_lines_of_three(Board, NextPlayer, Lines),
+    Lines \= [],
+    choose_best_removal(Lines, ToRemove, StackPos),
+    update_board(Board, ToRemove, StackPos, NextPlayer, NewBoard).
+
+% Clause for when no line of three is found or PlayerType is not relevant.
 handle_line_of_three(GameState, _, GameState).
+
+% Handle removal logic (common for both human and computer).
+handle_removal(exit, _, _, _, _) :- true.  % Exit condition.
+
+% Handle removal when StackPos is not exit.
+handle_removal(StackPos, Board, Lines, NextPlayer, NewBoard) :-
+    StackPos \= exit,
+    select_removal(StackPos, Lines, ToRemove),
+    update_board(Board, ToRemove, StackPos, NextPlayer, NewBoard).
 
 
 select_removal(StackPos, [Line|_], ToRemove) :-
@@ -252,23 +283,39 @@ check_line(Line, RowIdx, Player, Result) :-
         (RowIdx, O3)
     ].
 
-choose_two_to_remove(Lines, StackPos) :-
+% Clause for handling the exit condition (StackPos = exit).
+choose_two_to_remove(_, exit) :-
     repeat, 
     nl, write('(0 to exit)'),
     nl, write('Enter position to stack (e.g., (Rs, Cs)) : '),
     catch(read(Input), _, fail),
-    (
-        Input = 0 ->  % Exit condition
-        nl, write('Exiting the game. Goodbye!'),  nl, StackPos = exit, !
-    ;
-        Input = (Row, Col), integer(Row), integer(Col), 
-        member(Line, Lines), member((Row, Col), Line) -> 
-        StackPos = (Row, Col), 
-        nl, format("Position ~w selected for stacking.~n", [StackPos]), !
-    ;
-        write('Invalid position! Please enter a valid (Row, Col) from the lines of three.'), nl, fail
-    ).
+    process_exit_condition(Input).
 
+% Clause for handling valid input for selecting a position to stack.
+choose_two_to_remove(Lines, (Row, Col)) :-
+    repeat, 
+    nl, write('(0 to exit)'),
+    nl, write('Enter position to stack (e.g., (Rs, Cs)) : '),
+    catch(read(Input), _, fail),
+    process_valid_position(Lines, Input, Row, Col).
+
+% Process the exit condition.
+process_exit_condition(0) :-
+    nl, write('Exiting the game. Goodbye!'), nl, !.
+
+% Process valid position selection.
+process_valid_position(Lines, (Row, Col), Row, Col) :-
+    integer(Row), integer(Col), 
+    member(Line, Lines), member((Row, Col), Line),
+    nl, format("Position ~w selected for stacking.~n", [(Row, Col)]), !.
+
+% Handle invalid input or position.
+process_valid_position(_, _, _, _) :-
+    write('Invalid position! Please enter a valid (Row, Col) from the lines of three.'), nl, fail.
+
+% Handle invalid inputs.
+process_exit_condition(_) :-
+    write('Invalid input! Please enter a valid position or 0 to exit.'), nl, fail.
 
 
 update_board(Board, ToRemove, StackPos, Player, NewBoard) :-
@@ -291,10 +338,17 @@ add_stack(Board, (Row, Col), black, NewBoard) :-
     replace_nth(Col, OldRow, x, NewRow),
     replace_nth(Row, Board, NewRow, NewBoard).
 
+% Clause for when a line of stacks is found (there is a winner).
 game_over(state(Board, _), Winner) :-
-    (line_of_stacks(Board, Winner) -> true ;
-    board_full(Board) -> Winner = draw ;
-    Winner = none).
+    line_of_stacks(Board, Winner), !.
+
+% Clause for when the board is full and no winner (draw).
+game_over(state(Board, _), draw) :-
+    board_full(Board), !.
+
+% Clause for when no winner and the board is not full.
+game_over(state(_, _), none).
+
 
 line_of_stacks(Board, Winner) :-
     stack_symbol(Winner, Stack),
@@ -355,15 +409,18 @@ evaluate_greedy_move(state(Board, Player), move(Row, Col), FinalScore) :-
     % Weight the different factors
     FinalScore is BlockingScore * 1000 + FormLineScore * 800 + ProximityScore * 100.
 
-% Check if move blocks opponent from forming a line of three
+% Clause for when there are blocking lines (Count > 0).
 blocks_opponent_line(Board, Row, Col, Opponent, Score) :-
-    % Find all possible lines of two for opponent
     findall(Line, (
         find_line_of_two(Board, Opponent, Line),
         can_block_line(Line, Row, Col)
     ), BlockingLines),
     length(BlockingLines, Count),
-    (Count > 0 -> Score = Count ; Score = 0).
+    Count > 0,
+    Score = Count.
+
+% Clause for when there are no blocking lines (Count = 0).
+blocks_opponent_line(_, _, _, _, 0).
 
 find_line_of_two(Board, Player, Line) :-
     % Check horizontal lines
@@ -407,12 +464,14 @@ predict_third_position((R1, C1), (R2, C2), (R3, C3)) :-
     (   C1 = C2, C3 = C1,
         (R3 is R1 - 1; R3 is R2 + 1)
     );
-    (   
+   
+    (   DR is R2 - R1, 
+        DC is C2 - C1, 
         abs(DR) =:= abs(DC), 
         (   
             R3 is R1 - DR,
             C3 is C1 - DC
-        ;  
+        ;   
             R3 is R2 + DR,
             C3 is C2 + DC
         )
@@ -420,6 +479,7 @@ predict_third_position((R1, C1), (R2, C2), (R3, C3)) :-
 
 
 can_form_own_line(Board, Row, Col, Player, Score) :-
+    % Count how many potential lines this move could form
     findall(1, (
         find_line_of_two(Board, Player, Line),
         can_complete_line(Line, Row, Col)
@@ -439,15 +499,19 @@ can_complete_line([(R1,C1), (R2,C2)], Row, Col) :-
     ),
     Row > 0, Row =< 7, Col > 0, Col =< 7.
 
+% Clause for when there are opponent pieces on the board.
 calculate_proximity_score(Board, Row, Col, Opponent, Score) :-
     findall(Distance, (
         find_opponent_piece(Board, Opponent, OppRow, OppCol),
-        calculate_distance((Row,Col), (OppRow,OppCol), Distance)
+        calculate_distance((Row, Col), (OppRow, OppCol), Distance)
     ), Distances),
-    (Distances = [] -> Score = 0 ;
+    Distances \= [], % Ensure there are distances
     min_list(Distances, MinDistance),
-    % Convert distance to score (closer = higher score)
-    Score is max(0, 7 - MinDistance)).
+    Score is max(0, 7 - MinDistance).
+
+% Clause for when there are no opponent pieces (no proximity score).
+calculate_proximity_score(_, _, _, _, 0).
+
 
 % Helper to find opponent pieces on the board
 find_opponent_piece(Board, Opponent, Row, Col) :-
