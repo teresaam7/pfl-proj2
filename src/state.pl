@@ -11,9 +11,9 @@ empty_row(Row) :-
 
 % Clause when the game is over (Winner is not 'none').
 game_loop(GameState, _, _, _, _) :-
-    display_game(GameState),
     game_over(GameState, Winner),
     Winner \= none,
+    display_game(GameState),
     nl, format("Game over! Winner: ~w~n", [Winner]).
 
 % Clause when the game is not over.
@@ -117,11 +117,17 @@ continue_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule) :-
     determine_player_type(CurrentPlayer, Player1, Player2, PieRule, CurrentPlayerType),
     handle_line_of_three(GameState, CurrentPlayerType, UpdatedGameState),
     choose_move(UpdatedGameState, CurrentPlayerType, Move),
-    (Move = exit -> true ;
+    continue_turn_move(UpdatedGameState, Player1, Player2, CurrentPlayerType, TurnCount, PieRule, Move).
+
+continue_turn_move(_,_,_,_,_,_,exit).
+
+continue_turn_move(UpdatedGameState, Player1, Player2, CurrentPlayerType, TurnCount, PieRule, Move) :-
     move(UpdatedGameState, Move, TempGameState),
     handle_line_of_three(TempGameState, CurrentPlayerType, NewGameState),
     NewTurnCount is TurnCount + 1,
-    game_loop(NewGameState, Player1, Player2, NewTurnCount, PieRule)).
+    game_loop(NewGameState, Player1, Player2, NewTurnCount, PieRule).
+    
+
 
 % Clause for determining player type when PieRule is 'y' and CurrentPlayer is black.
 determine_player_type(black, Player1, _, 'y', Player1).
@@ -149,21 +155,40 @@ choose_move(GameState, human, Move) :-
     repeat,
     nl, write('(0 to exit)'),
     nl, write('Enter your move as (Row, Col): '),
-    catch(read(Input), _, fail), 
-    (
-        Input = 0 ->  
-        nl, write('Exiting the game. Goodbye!'), nl, Move = exit, !   
-    ;
-        Input = (Row, Col), integer(Row), integer(Col), Row > 0, Row =< 7, Col > 0, Col =< 7 ->
-        (valid_move(GameState, move(Row, Col)) ->
-            Move = move(Row, Col), !
-        ;
-            write('Invalid move! That cell is already occupied or invalid.'), nl, fail
-        )
-    ;
-        write('Invalid input! Please enter (Row, Col) .'), nl, fail
-    ).
+    catch(read(Input), _, fail),
+    handle_move_input(GameState, Input, Move).
 
+
+%Handling human move input.
+%Clause for exiting the game.
+handle_move_input(_, 0, exit).
+    
+%Both Input and Move are valid.
+handle_move_input(GameState, (Row, Col), Move) :-
+    valid_input(Row, Col),   
+    valid_move(GameState, move(Row, Col)), 
+    !,                      
+    Move = move(Row, Col).  
+
+%Invalid Input.
+handle_move_input(_, (Row, Col), _) :-
+    \+ valid_input(Row, Col),
+    write('Invalid input! Please enter (Row, Col) .'), nl,
+    fail.
+
+%Valid Input, Invalid Move.
+handle_move_input(GameState, (Row, Col), _) :-
+    valid_input(Row, Col),    
+    \+ valid_move(GameState, move(Row, Col)),
+    write('Invalid move! That cell is already occupied or invalid.'), nl,
+    fail.
+
+%Helper function to validate Input.
+valid_input(Row, Col) :-
+    integer(Row), integer(Col),
+    Row > 0, Row =< 7,
+    Col > 0, Col =< 7.
+    
 
 
 valid_move(state(Board, _), move(Row, Col)) :-
@@ -283,13 +308,6 @@ check_line(Line, RowIdx, Player, Result) :-
         (RowIdx, O3)
     ].
 
-% Clause for handling the exit condition (StackPos = exit).
-choose_two_to_remove(_, exit) :-
-    repeat, 
-    nl, write('(0 to exit)'),
-    nl, write('Enter position to stack (e.g., (Rs, Cs)) : '),
-    catch(read(Input), _, fail),
-    process_exit_condition(Input).
 
 % Clause for handling valid input for selecting a position to stack.
 choose_two_to_remove(Lines, (Row, Col)) :-
@@ -300,7 +318,7 @@ choose_two_to_remove(Lines, (Row, Col)) :-
     process_valid_position(Lines, Input, Row, Col).
 
 % Process the exit condition.
-process_exit_condition(0) :-
+process_valid_position(_,0,_,_) :-
     nl, write('Exiting the game. Goodbye!'), nl, !.
 
 % Process valid position selection.
@@ -309,12 +327,8 @@ process_valid_position(Lines, (Row, Col), Row, Col) :-
     member(Line, Lines), member((Row, Col), Line),
     nl, format("Position ~w selected for stacking.~n", [(Row, Col)]), !.
 
-% Handle invalid input or position.
-process_valid_position(_, _, _, _) :-
-    write('Invalid position! Please enter a valid (Row, Col) from the lines of three.'), nl, fail.
-
 % Handle invalid inputs.
-process_exit_condition(_) :-
+process_valid_position(_,_,_,_) :-
     write('Invalid input! Please enter a valid position or 0 to exit.'), nl, fail.
 
 
