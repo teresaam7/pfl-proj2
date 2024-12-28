@@ -52,14 +52,11 @@ ask_pie_rule(GameState, computer(1), Player2, TurnCount) :-
 % Clause for handling pie rule when Player1 is a human player.
 ask_pie_rule(GameState, Player1, Player2, TurnCount) :-
     repeat,
-    nl, write('(0 to exit)'),
     nl, write('Would you like to switch places with your opponent? y/n : '),
     catch(read(Answer), _, fail),
-    process_human_pie_response(Answer, GameState, Player1, Player2, TurnCount).
+    process_human_pie_response(Answer, GameState, Player1, Player2, TurnCount),!.
 
 % Handle human input for pie rule.
-process_human_pie_response(0, _, _, _, _) :-
-    nl, write('Exiting the game. Goodbye!'), nl, !, fail.
 
 process_human_pie_response(Answer, GameState, Player1, Player2, TurnCount) :-
     member(Answer, ['y', 'n']),
