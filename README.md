@@ -98,7 +98,16 @@ https://boardgamegeek.com/filepage/217760/lot-rules-in-english
 ## Game Logic
 ### Game Configuration Representation
 - Initial configuration is represented using a predicate `initial_state/2`. For example:
-  ```prolog
+  `initial_state(state(Board, Player))`
+- The board is represented as a list of cells, with each cell being either `empty`, `piece(Player)`, or `stack(Player, Height)`.
+
+### Internal Game State Representation
+- The game state is maintained using:
+  - **Board**: A list of 49 cells for the 7x7 grid.
+ 
+    #### Initial state
+    
+    ```prolog
     [[empty, empty, empty, empty, empty, empty, empty],
      [empty, empty, empty, empty, empty, empty, empty],
      [empty, empty, empty, empty, empty, empty, empty],
@@ -106,31 +115,30 @@ https://boardgamegeek.com/filepage/217760/lot-rules-in-english
      [empty, empty, empty, empty, empty, empty, empty],
      [empty, empty, empty, empty, empty, empty, empty],
      [empty, empty, empty, empty, empty, empty, empty]]
-  ```
-- The board is represented as a list of cells, with each cell being either `empty`, `piece(Player)`, or `stack(Player, Height)`.
-
-### Internal Game State Representation
-- The game state is maintained using:
-  - **Board**: A list of 49 cells for the 7x7 grid.
+     ```
   
-  ```
-      |  1 |  2 |  3 |  4 |  5 |  6 |  7 |
-  ----|----|----|----|----|----|----|----|
-    7 |  . |  . |  . |  . |  . |  . |  . | 
-  ____|____|____|____|____|____|____|____|
-    6 |  . |  . |  . |  . |  . |  . |  . | 
-  ____|____|____|____|____|____|____|____|
-    5 |  . |  . |  . |  . |  . |  . |  . | 
-  ____|____|____|____|____|____|____|____|
-    4 |  . |  . |  . |  . |  . |  . |  . | 
-  ____|____|____|____|____|____|____|____|
-    3 |  . |  . |  . |  . |  . |  . |  . | 
-  ____|____|____|____|____|____|____|____|
-    2 |  . |  . |  . |  . |  . |  . |  . | 
-  ____|____|____|____|____|____|____|____|
-    1 |  . |  . |  . |  . |  . |  . |  . | 
-  ____|____|____|____|____|____|____|____|
-  ```
+     ```
+         |  1 |  2 |  3 |  4 |  5 |  6 |  7 |
+     ----|----|----|----|----|----|----|----|
+       7 |  . |  . |  . |  . |  . |  . |  . | 
+     ____|____|____|____|____|____|____|____|
+       6 |  . |  . |  . |  . |  . |  . |  . | 
+     ____|____|____|____|____|____|____|____|
+       5 |  . |  . |  . |  . |  . |  . |  . | 
+     ____|____|____|____|____|____|____|____|
+       4 |  . |  . |  . |  . |  . |  . |  . | 
+     ____|____|____|____|____|____|____|____|
+       3 |  . |  . |  . |  . |  . |  . |  . | 
+     ____|____|____|____|____|____|____|____|
+       2 |  . |  . |  . |  . |  . |  . |  . | 
+     ____|____|____|____|____|____|____|____|
+       1 |  . |  . |  . |  . |  . |  . |  . | 
+     ____|____|____|____|____|____|____|____|
+     ```
+      #### Intermediate state
+
+      #### Final state
+     
   - **Turn**: Indicates the current player (`player1` or `player2`).
 
 Example:
