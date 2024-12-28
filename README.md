@@ -103,7 +103,11 @@ https://boardgamegeek.com/filepage/217760/lot-rules-in-english
 
 ### Internal Game State Representation
 - The game state is maintained using:
-  - **Board**: A list of 49 cells for the 7x7 grid.
+  - **Board**: A list of 49 cells for the 7x7 grid. Each cell is defined as:
+
+      - `empty`: No pieces present.
+      - `piece(Player)`: A single piece belonging to `Player`.
+      - `stack(Player, Height)`: A stack of pieces belonging to `Player`, with `Height` indicating the number of pieces in the stack.
  
     #### Initial state
     
@@ -136,7 +140,16 @@ https://boardgamegeek.com/filepage/217760/lot-rules-in-english
      ____|____|____|____|____|____|____|____|
      ```
       ##### Intermediate state
-     
+
+     ```
+     [[piece(player1), empty, empty, piece(player1), empty, empty, empty],
+       [piece(player2), empty, piece(player2), empty, empty, empty, empty],
+       [empty, piece(player2), empty, empty, empty, empty, empty],
+       [empty, empty, piece(player1), empty, empty, empty, empty],
+       [empty, empty, empty, empty, empty, empty, empty],
+       [empty, empty, empty, empty, empty, empty, empty],
+       [empty, empty, empty, empty, empty, empty, empty]]
+     ```
 
       ```prolog
                  Player O Playing
@@ -189,6 +202,16 @@ https://boardgamegeek.com/filepage/217760/lot-rules-in-english
       ```
 
       #### Final state
+
+      ```
+        [[empty, stack(player2, 2), empty, empty, stack(player1, 2), empty, piece(player1)],
+          [empty, empty, stack(player2, 2), empty, stack(player1, 2), empty, empty],
+          [empty, stack(player2, 2), stack(player1, 2), empty, empty, empty, empty],
+          [stack(player2, 2), empty, empty, empty, empty, empty, empty],
+          [empty, empty, empty, empty, empty, empty, empty],
+          [empty, empty, empty, empty, empty, empty, empty],
+          [empty, empty, empty, empty, empty, empty, empty]]
+     ```
 
       ```prolog
   
