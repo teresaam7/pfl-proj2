@@ -136,7 +136,7 @@ determine_player_type(white, Player1, _, PieRule, Player1) :-
 % Clause for determining player type for all other cases.
 determine_player_type(_, _, Player2, _, Player2).
 
-start_game(Player1, Player2) :-
+start_game(Player1, Player2, Size) :-
     initial_state(GameState),
     game_loop(GameState, Player1, Player2, 0, 'n').
 
