@@ -2,7 +2,7 @@
 display_game(state(Board, Player)) :-
     nl,
     write('           '),
-    (Player = white -> write('Player O Playing') ; write('Player X Playing')), nl,
+    (Player = white -> write('Player *white* Playing') ; write('Player *black* Playing')), nl,
     write('                                    '), nl,
     print_column_headers(Board),
     print_horizontal_line(Board),

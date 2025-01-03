@@ -1,3 +1,6 @@
+% Initialize game state with empty board of given size
+% Returns: Initial game state with empty board and white as starting player
+
 initial_state(Size, state(Board, white)) :-
     empty_board(Size, Board).
 
@@ -9,7 +12,11 @@ empty_row(Size, Row) :-
     length(Row, Size),
     maplist(=(empty), Row).
 
-% Clause when the game is over (Winner is not 'none').
+
+% Main game loop - handles game over condition
+% GameState: Current state of the board and player
+% Winner: Player who has won the game ('white' or 'black')
+
 game_loop(GameState, _, _, _, _) :-
     game_over(GameState, Winner),
     Winner \= none,
@@ -27,7 +34,9 @@ game_loop(GameState, Player1, Player2, TurnCount, PieRule) :-
 game_loop(_, _, _, _, _) :-
     nl, write('Game exited. Thank you for playing!'), !.
 
-% Clause for handling turn when its the second turn (Pie rule applies).
+%-----------------------------TURN HANDLING-----------------------------------
+
+% Special handling for the second turn when pie rule can be applied
 handle_turn(GameState, Player1, Player2, _, TurnCount, _) :-
     TurnCount =:= 2,
     ask_pie_rule(GameState, Player1, Player2, TurnCount).
@@ -37,13 +46,25 @@ handle_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule) :-
     TurnCount \= 2,
     continue_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule).
 
-% Clause for handling pie rule when Player1 is a hard computer.
+%------------------------------PIE RULE---------------------------------------
+
+% Handle pie rule decision for advanced AI (computer(2)) -> hard computer
+% Uses strategic decision making based on board position analysis
+
 ask_pie_rule(GameState, computer(2), Player2, TurnCount) :-
     pie_rule_decision(GameState, Response),
     nl, format("Computer chooses to ~w to switch places.~n", [Response]),
     handle_pie_rule_response(GameState, computer(2), Player2, TurnCount, Response).
 
-% Clause for handling pie rule when Player1 is an easy computer.
+% Handle pie rule decision for basic AI (computer(1)) -> easy computer
+% Uses random decision making
+
+% Handle pie rule decision for human player
+% Prompts for user input and validates response
+% GameState: Current board state
+% Player1: Human player
+% Player2: The opponent
+
 ask_pie_rule(GameState, computer(1), Player2, TurnCount) :-
     random_pie_rule_response(Response),
     nl, format("Computer chooses to ~w to switch places.~n", [Response]),
@@ -56,7 +77,10 @@ ask_pie_rule(GameState, Player1, Player2, TurnCount) :-
     catch(read(Answer), _, fail),
     process_human_pie_response(Answer, GameState, Player1, Player2, TurnCount),!.
 
-% Handle human input for pie rule.
+%-----------------------------PIE RULE RESPONSE------------------------------------
+
+% Process valid human response to pie rule question
+% Answer: 'y' or 'n' response from user
 
 process_human_pie_response(Answer, GameState, Player1, Player2, TurnCount) :-
     member(Answer, ['y', 'n']),
@@ -65,19 +89,27 @@ process_human_pie_response(Answer, GameState, Player1, Player2, TurnCount) :-
 process_human_pie_response(_, _, _, _, _) :-
     write('Invalid choice! Please enter y, n.'), nl, fail.
 
-% Clause when there are pieces in central positions.
+% Decide to switch positions if white has pieces in central positions
+% Returns 'y' if advantageous central position detected
+
 pie_rule_decision(state(Board, white), 'y') :-
     length(Board, Size),
     central_positions(Size, Central),
     count_pieces(Board, white, Central, Count),
     Count > 0.
 
-% Clause when there are no pieces in central positions.
+% Decide not to switch if no central position advantage exists
+% Returns 'n' if no significant positional advantage detected
+
 pie_rule_decision(state(Board, white), 'n') :-
     length(Board, Size),
     central_positions(Size, Central),
     count_pieces(Board, white, Central, Count),
     Count =< 0.
+
+% Calculate central positions of the board
+% Size: Board dimensions
+% Positions: Returns list of (Row,Col) tuples representing central squares
 
 central_positions(Size, Positions) :-
     Mid is (Size + 1) div 2,
@@ -90,16 +122,18 @@ central_positions(Size, Positions) :-
         C > 0, C =< Size
     ), Positions).
 
+% Count number of pieces of a player in specified positions
+
 count_pieces(Board, Player, Positions, Count) :-
     findall(Position, (member(Position, Positions), is_player_at(Board, Position, Player)), Found),
     length(Found, Count).
 
+% Check if a specific board position contains a piece of a player
 
 is_player_at(Board, (Row, Col), Player) :-
     nth1(Row, Board, BoardRow),
     nth1(Col, BoardRow, Cell),
     Cell = Player.
-
 
 random_pie_rule_response('y') :-
     random(0.0, 1.0, Rand), 
@@ -108,9 +142,13 @@ random_pie_rule_response('n') :-
     random(0.0, 1.0, Rand), 
     Rand >= 0.5.
 
+% Process 'yes' response to pie rule - switches player positions
+
 handle_pie_rule_response(GameState, Player1, Player2, TurnCount, 'y') :-
     NewTurnCount is TurnCount + 1,
     game_loop(GameState, Player1, Player2, NewTurnCount, 'y').
+
+% Process 'no' response to pie rule - switches player positions
 
 handle_pie_rule_response(GameState, Player1, Player2, TurnCount, 'n') :-
     NewTurnCount is TurnCount + 1,
@@ -119,6 +157,9 @@ handle_pie_rule_response(GameState, Player1, Player2, TurnCount, 'n') :-
 handle_pie_rule_response(GameState, Player1, Player2, TurnCount, _) :-
     write('Invalid choice, try again.'), nl,
     ask_pie_rule(GameState, Player1, Player2, TurnCount, 'n').
+
+%-----------------------------CONTINUE TURN------------------------------------
+
 
 continue_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule) :-
     determine_player_type(CurrentPlayer, Player1, Player2, PieRule, CurrentPlayerType),
@@ -135,7 +176,6 @@ continue_turn_move(UpdatedGameState, Player1, Player2, CurrentPlayerType, TurnCo
     game_loop(NewGameState, Player1, Player2, NewTurnCount, PieRule).
     
 
-
 % Clause for determining player type when PieRule is 'y' and CurrentPlayer is black.
 determine_player_type(black, Player1, _, 'y', Player1).
 
@@ -150,13 +190,21 @@ start_game(Player1, Player2, Size) :-
     initial_state(Size, GameState),
     game_loop(GameState, Player1, Player2, 0, 'n').
 
+%---------------------------MOVE SELECTION AND VALIDATIONS------------------------------------
+
+% Select random move for easy computer player (computer(1))
+
 choose_move(GameState, computer(1), Move) :-
     valid_moves(GameState, Moves),
     random_member(Move, Moves).
 
+% Select best move for hard computer player (computer(2))
+
 choose_move(GameState, computer(2), Move) :-
     valid_moves(GameState, Moves),
-    best_greedy_move(GameState, Moves, Move).
+    best_greedy_move(GameState, Moves, Move).  % Use greedy strategy
+
+% Handle human player move input
 
 choose_move(GameState, human, Move) :-
     repeat,
@@ -166,7 +214,6 @@ choose_move(GameState, human, Move) :-
     handle_move_input(GameState, Input, Move).
 
 
-%Handling human move input.
 %Clause for exiting the game.
 handle_move_input(_, 0, exit).
     
@@ -198,7 +245,6 @@ valid_input(Row, Col, Size) :-
     integer(Row), integer(Col),
     Row > 0, Row =< Size,
     Col > 0, Col =< Size.
-    
 
 
 valid_move(state(Board, _), move(Row, Col)) :-
@@ -229,7 +275,12 @@ valid_position(Board, Row, Col) :-
     nth1(Col, BoardRow, Cell),
     Cell = empty.
 
-% Clause for handling the line of three when PlayerType is human.
+%-----------------------------LINE OF THREE------------------------------------
+
+
+% Handle line of three for human player
+% Allows human to choose which pieces to remove and stack
+
 handle_line_of_three(state(Board, Player), human, state(NewBoard, Player)) :-
     next_player(Player, NextPlayer),
     find_lines_of_three(Board, NextPlayer, Lines),
@@ -238,7 +289,9 @@ handle_line_of_three(state(Board, Player), human, state(NewBoard, Player)) :-
     choose_two_to_remove(Lines, StackPos),
     handle_removal(StackPos, Board, Lines, NextPlayer, NewBoard).
 
-% Clause for handling the line of three when PlayerType is computer.
+% Handle line of three for computer player
+% Automatically selects optimal pieces to remove and stack
+
 handle_line_of_three(state(Board, Player), computer(_), state(NewBoard, Player)) :-
     next_player(Player, NextPlayer),
     find_lines_of_three(Board, NextPlayer, Lines),
@@ -247,31 +300,39 @@ handle_line_of_three(state(Board, Player), computer(_), state(NewBoard, Player))
     update_board(Board, ToRemove, StackPos, NextPlayer, NewBoard).
 
 % Clause for when no line of three is found or PlayerType is not relevant.
+
 handle_line_of_three(GameState, _, GameState).
 
 % Handle removal logic (common for both human and computer).
+
 handle_removal(exit, _, _, _, _) :- true.  % Exit condition.
 
 % Handle removal when StackPos is not exit.
+
 handle_removal(StackPos, Board, Lines, NextPlayer, NewBoard) :-
     StackPos \= exit,
     select_removal(StackPos, Lines, ToRemove),
     update_board(Board, ToRemove, StackPos, NextPlayer, NewBoard).
 
+% Select pieces to remove from a line.
 
 select_removal(StackPos, [Line|_], ToRemove) :-
-    exclude(==(StackPos), Line, ToRemove).
+    exclude(==(StackPos), Line, ToRemove).      % Exclude StackPos from the line
 
+
+% Choose the best removal strategy for the computer.
 
 choose_best_removal([Line|_], ToRemove, StackPos) :-
     Line = [(R1, C1), (R2, C2), (R3, C3)],
     nth1(R1, Board, Row1), nth1(C1, Row1, Player),
     nth1(R2, Board, Row2), nth1(C2, Row2, Player),
     nth1(R3, Board, Row3), nth1(C3, Row3, Player),
-    ToRemove = [(R1, C1), (R2, C2)],
-    StackPos = (R3, C3),
+    ToRemove = [(R1, C1), (R2, C2)],                        % Remove two pieces from the line
+    StackPos = (R3, C3),                                    % Stack the third piece
     write('To Remove: '), write(ToRemove), nl,
     write('Stack Position: '), write(StackPos), nl.
+
+% Find all lines of three for a given player.
 
 find_lines_of_three(Board, Player, Lines) :-
     setof(Line, (valid_line(Board, Player, Line)), Lines).
@@ -281,9 +342,13 @@ valid_line(Board, Player, Line) :-
      check_columns(Board, Player, Line);
      check_diagonals(Board, Player, Line)).
 
+% Check for horizontal lines of three.
+
 check_lines(Board, Player, Line) :-
     nth1(RowIdx, Board, Row),
     check_line(Row, RowIdx, Player, Line).
+
+% Check for vertical lines of three.
 
 check_columns(Board, Player, Line) :-
     transpose(Board, TransposedBoard),
@@ -291,7 +356,11 @@ check_columns(Board, Player, Line) :-
     check_line(Col, ColIdx, Player, TempLine),
     maplist(swap_coords, TempLine, Line).
 
+% Swap row and column coordinates.
+
 swap_coords((X, Y), (Y, X)).
+
+% Check for diagonal lines of three.
 
 check_diagonals(Board, Player, Line) :-
     diagonal(Board, Diagonals),
@@ -305,6 +374,7 @@ check_diagonal_line(Line, Player, Result) :-
              Row is 8 - Index, 
              Col is Index), 
             Result).
+% Check a specific line for three consecutive player pieces.
 
 check_line(Line, RowIdx, Player, Result) :-
     append(Beginning, [Player, Player, Player|_], Line),
@@ -319,7 +389,8 @@ check_line(Line, RowIdx, Player, Result) :-
     ].
 
 
-% Clause for handling valid input for selecting a position to stack.
+% Allow the player to select a position to stack.
+
 choose_two_to_remove(Lines, (Row, Col)) :-
     repeat, 
     nl, write('(0 to exit)'),
@@ -341,10 +412,13 @@ process_valid_position(Lines, (Row, Col), Row, Col) :-
 process_valid_position(_,_,_,_) :-
     write('Invalid input! Please enter a valid position or 0 to exit.'), nl, fail.
 
+% Update the board after removal and stacking.
 
 update_board(Board, ToRemove, StackPos, Player, NewBoard) :-
     remove_pieces(Board, ToRemove, TempBoard),
     add_stack(TempBoard, StackPos, Player, NewBoard).
+
+% Remove selected pieces from the board.
 
 remove_pieces(Board, [], Board).
 remove_pieces(Board, [(Row, Col)|Rest], NewBoard) :-
@@ -352,6 +426,8 @@ remove_pieces(Board, [(Row, Col)|Rest], NewBoard) :-
     replace_nth(Col, OldRow, empty, NewRow),
     replace_nth(Row, Board, NewRow, TempBoard),
     remove_pieces(TempBoard, Rest, NewBoard).
+
+% Add a stack piece to the board.
 
 add_stack(Board, (Row, Col), white, NewBoard) :-
     nth1(Row, Board, OldRow),
@@ -372,7 +448,6 @@ game_over(state(Board, _), draw) :-
 
 % Clause for when no winner and the board is not full.
 game_over(state(_, _), none).
-
 
 line_of_stacks(Board, Winner) :-
     stack_symbol(Winner, Stack),
@@ -402,11 +477,12 @@ stack_symbol(black, x).
 board_full(Board) :-
     \+ (member(Row, Board), member(empty, Row)).
 
-
 next_player(white, black).
 next_player(black, white).
 
-%----------------------------------------------------------------
+%-------------------------GREEDY CHOICE---------------------------------------
+
+% Select the best move based on a greedy evaluation
 
 best_greedy_move(state(Board, Player), Moves, BestMove) :-
     findall(Score-Move, (
@@ -418,6 +494,7 @@ best_greedy_move(state(Board, Player), Moves, BestMove) :-
     last(Sorted, _-BestMove).
 
 % Evaluate a potential move with weighted priorities
+
 evaluate_greedy_move(state(Board, Player), move(Row, Col), FinalScore) :-
     apply_move(Board, Row, Col, Player, NewBoard),
     next_player(Player, Opponent),
@@ -433,7 +510,9 @@ evaluate_greedy_move(state(Board, Player), move(Row, Col), FinalScore) :-
     % Weight the different factors
     FinalScore is BlockingScore * 1000 + FormLineScore * 800 + ProximityScore * 100.
 
-% Clause for when there are blocking lines (Count > 0).
+% Clause for when there are blocking lines (Count > 0)
+% Check if a move blocks a potential line of an opponent
+
 blocks_opponent_line(Board, Row, Col, Opponent, Score) :-
     findall(Line, (
         find_line_of_two(Board, Opponent, Line),
@@ -444,7 +523,10 @@ blocks_opponent_line(Board, Row, Col, Opponent, Score) :-
     Score = Count.
 
 % Clause for when there are no blocking lines (Count = 0).
+
 blocks_opponent_line(_, _, _, _, 0).
+
+% Identify a line of two pieces for a player -> in order to avoid the formation of a line of three pieces
 
 find_line_of_two(Board, Player, Line) :-
     % Check horizontal lines
@@ -455,6 +537,7 @@ find_line_of_two(Board, Player, Line) :-
      check_diagonals_of_two(Board, Player, Line)).
 
 % Check horizontal sequences of two pieces
+
 check_horizontal_two(Board, Player, [(Row,Col1), (Row,Col2)]) :-
     length(Board, Size),
     between(1, Size, Row),
@@ -467,6 +550,7 @@ check_horizontal_two(Board, Player, [(Row,Col1), (Row,Col2)]) :-
      Col2 < Size, Col3 is Col2 + 1, nth1(Col3, RowList, empty)).
 
 % Check vertical sequences of two pieces
+
 check_vertical_two(Board, Player, [(Row1,Col), (Row2,Col)]) :-
     length(Board, Size),
     between(1, Size-1, Row1),
@@ -479,9 +563,13 @@ check_vertical_two(Board, Player, [(Row1,Col), (Row2,Col)]) :-
     (Row1 > 1, Row3 is Row1 - 1, nth1(Row3, Board, Row3List), nth1(Col, Row3List, empty);
      Row2 < Size, Row3 is Row2 + 1, nth1(Row3, Board, Row3List), nth1(Col, Row3List, empty)).
 
+% Determine if a position blocks a line
+
 can_block_line([(R1,C1), (R2,C2)], Row, Col) :-
     % Calculate the position that would complete the line
     predict_third_position((R1,C1), (R2,C2), (Row,Col)).
+
+% Predict third position in a line
 
 predict_third_position((R1, C1), (R2, C2), (R3, C3)) :-
     (   R1 = R2, 
@@ -516,6 +604,8 @@ can_form_own_line(Board, Row, Col, Player, Score) :-
     ), Counts),
     length(Counts, Score).
 
+% Check if a line can be completed
+
 can_complete_line([(R1,C1), (R2,C2)], Row, Col, Size) :-
     DR is R2 - R1,
     DC is C2 - C1,
@@ -530,6 +620,7 @@ can_complete_line([(R1,C1), (R2,C2)], Row, Col, Size) :-
     Row > 0, Row =< Size, Col > 0, Col =< Size.
 
 % Clause for when there are opponent pieces on the board.
+
 calculate_proximity_score(Board, Row, Col, Opponent, Score) :-
     length(Board, Size),
     findall(Distance, (
@@ -544,7 +635,8 @@ calculate_proximity_score(Board, Row, Col, Opponent, Score) :-
 calculate_proximity_score(_, _, _, _, 0).
 
 
-% Helper to find opponent pieces on the board
+% Find opponent pieces on the board
+
 find_opponent_piece(Board, Opponent, Row, Col) :-
     length(Board, Size),
     between(1, Size, Row),
@@ -620,17 +712,24 @@ validate_diagonal_position(Board, Row, Col) :-
     nth1(Col, RowList, empty).
 
 
-
 heuristic_distance((R1, C1), (R2, C2), Distance) :-
     Distance is abs(R1 - R2) + abs(C1 - C2).
 
-%----------------------------------------------------------------
+%--------------------------DIAGONALS--------------------------------------
 
 % Extract all diagonals from a board
+% Combines downward and upward diagonals into a single list.
+% Downward diagonals start from the top-left and go to the bottom-right.
+% Upward diagonals start from the bottom-left and go to the top-right.
+
 diagonal(Board, Diagonals) :-
     findall(Diag, diagonal_down(Board, Diag), DownDiags),
     findall(Diag, diagonal_up(Board, Diag), UpDiags),
     append(DownDiags, UpDiags, Diagonals).
+
+% Extract all downward diagonals from the board.
+% Starts from each row (first column) and each column (first row).
+% Collects diagonals running in a downward-right direction.
 
 diagonal_down(Board, Diagonal) :-
     length(Board, N),
@@ -640,6 +739,10 @@ diagonal_down(Board, Diagonal) :-
     length(Board, N),
     between(2, N, StartCol),
     diagonal_down_from(Board, 1, StartCol, Diagonal).
+
+% Trace a downward diagonal starting from (Row, Col).
+% Recursively collects elements until reaching the board boundary.
+% Stops when Row or Col exceed the board size.
 
 diagonal_down_from(Board, Row, Col, []) :-
     length(Board, N),
@@ -654,6 +757,10 @@ diagonal_down_from(Board, Row, Col, [(Value,(Row,Col))|Rest]) :-
     NextCol is Col + 1,
     diagonal_down_from(Board, NextRow, NextCol, Rest).
 
+% Extract all upward diagonals from the board.
+% Starts from each row (first column) and each column (last row).
+% Collects diagonals running in an upward-right direction.
+
 diagonal_up(Board, Diagonal) :-
     length(Board, N),
     between(1, N, StartRow),
@@ -662,6 +769,10 @@ diagonal_up(Board, Diagonal) :-
     length(Board, N),
     between(2, N, StartCol),
     diagonal_up_from(Board, N, StartCol, Diagonal).
+
+% Trace an upward diagonal starting from (Row, Col).
+% Recursively collects elements until reaching the board boundary.
+% Stops when Row is less than 1 or Col exceeds the board size.
 
 diagonal_up_from(Board, Row, Col, []) :-
     length(Board, Size),
