@@ -81,13 +81,14 @@ pie_rule_decision(state(Board, white), 'n') :-
 
 central_positions(Size, Positions) :-
     Mid is (Size + 1) div 2,
+    Mid1 is Mid - 1,
+    Mid2 is Mid + 1,
     findall((R,C), (
-        member(R, [Mid-1, Mid, Mid+1]),
-        member(C, [Mid-1, Mid, Mid+1]),
+        member(R, [Mid1, Mid, Mid2]),
+        member(C, [Mid1, Mid, Mid2]),
         R > 0, R =< Size,
         C > 0, C =< Size
     ), Positions).
-
 
 count_pieces(Board, Player, Positions, Count) :-
     findall(Position, (member(Position, Positions), is_player_at(Board, Position, Player)), Found),
@@ -307,12 +308,12 @@ check_diagonal_line(Line, Player, Result) :-
 
 check_line(Line, RowIdx, Player, Result) :-
     append(Beginning, [Player, Player, Player|_], Line),
- length(Beginning, Offset),
-        O1 is Offset +1,
-        O2 is Offset +2,
-        O3 is Offset +3,
+    length(Beginning, Offset),
+    O1 is Offset + 1,   
+    O2 is Offset + 2,    
+    O3 is Offset + 3,   
     Result = [
-        (RowIdx,O1),
+        (RowIdx, O1),
         (RowIdx, O2),
         (RowIdx, O3)
     ].
@@ -407,7 +408,6 @@ next_player(black, white).
 
 %----------------------------------------------------------------
 
-% Encontrar o melhor movimento baseado em estrat�gia greedy
 best_greedy_move(state(Board, Player), Moves, BestMove) :-
     findall(Score-Move, (
         member(Move, Moves),
@@ -484,22 +484,25 @@ can_block_line([(R1,C1), (R2,C2)], Row, Col) :-
     predict_third_position((R1,C1), (R2,C2), (Row,Col)).
 
 predict_third_position((R1, C1), (R2, C2), (R3, C3)) :-
-    (   R1 = R2, R3 = R1,
-        (C3 is C1 - 1; C3 is C2 + 1)
+    (   R1 = R2, 
+        R3 = R1,
+        (   C3 is C1 - 1    
+        ;   C3 is C2 + 1    
+        )
     );
-    (   C1 = C2, C3 = C1,
-        (R3 is R1 - 1; R3 is R2 + 1)
+    (   C1 = C2, 
+        C3 = C1,
+        (   R3 is R1 - 1    
+        ;   R3 is R2 + 1    
+        )
     );
-   
-    (   DR is R2 - R1, 
-        DC is C2 - C1, 
-        abs(DR) =:= abs(DC), 
-        (   
-            R3 is R1 - DR,
-            C3 is C1 - DC
-        ;   
-            R3 is R2 + DR,
-            C3 is C2 + DC
+    (   DR is R2 - R1,      
+        DC is C2 - C1,      
+        abs(DR) =:= abs(DC),
+        (   R3 is R1 - DR,  
+            C3 is C1 - DC   
+        ;   R3 is R2 + DR, 
+            C3 is C2 + DC   
         )
     ).
 
