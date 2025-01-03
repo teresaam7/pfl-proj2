@@ -82,16 +82,14 @@ A stack may contain **no more than two pieces** at any given time.
 
 Sources regarding rules and game description: 
 
-https://boardgamegeek.com/boardgame/127989/lot
-
-https://boardgamegeek.com/video/164442/lot/lot-line-of-three-game-overview-and-rules-explanat
-
-https://boardgamegeek.com/filepage/217760/lot-rules-in-english
+- https://boardgamegeek.com/boardgame/127989/lot
+- https://boardgamegeek.com/video/164442/lot/lot-line-of-three-game-overview-and-rules-explanat
+- https://boardgamegeek.com/filepage/217760/lot-rules-in-english
 
 
 
 ## Considerations for Game Extensions
-- **Variable-sized boards**: The game can be adapted to different board sizes by adjusting initial configurations.
+- **Variable-sized boards**: The size of the board can be chosen by the user, allowing the game to be adapted to different dimensions by adjusting the initial configurations.
 - **Optional rules**: Simplified rules for novice players include restricting moves to certain zones. Advanced rules for experts introduce additional win conditions.
 - **AI difficulty**: AI algorithms can be extended with enhanced heuristics and depth analysis for expert-level gameplay.
 
@@ -355,4 +353,7 @@ This project successfully implements the LOT game, including:
 ## Bibliography
 - [SICStus Prolog Documentation](https://sicstus.sics.se/documentation.html)
 - [LOT Rules Source](https://boardgamegeek.com/boardgame/127989/lot)
+- https://boardgamegeek.com/boardgame/127989/lot
+- https://boardgamegeek.com/video/164442/lot/lot-line-of-three-game-overview-and-rules-explanat
+- https://boardgamegeek.com/filepage/217760/lot-rules-in-english
 - ChatGPT queries for Prolog logic and optimizations.
