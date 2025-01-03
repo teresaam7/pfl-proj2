@@ -26,13 +26,13 @@ print_column_numbers(_, _).
 % Imprime linha horizontal dinâmica
 print_horizontal_line(Board) :-
     length(Board, Size),
-    write('----'),
+    write('____'),
     print_horizontal_segments(Size),
     nl.
 
 print_horizontal_segments(0):-  write('|').
 print_horizontal_segments(Size) :-
-    write('|----'),
+    write('|____'),
     Size1 is Size - 1,
     print_horizontal_segments(Size1).
 
