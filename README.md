@@ -90,18 +90,33 @@ Sources regarding rules and game description:
 
 ## Considerations for Game Extensions
 - **Variable-sized boards**: The size of the board can be chosen by the user, allowing the game to be adapted to different dimensions by adjusting the initial configurations.
+    <p align="center">
+        <img src="docs/print1.png" alt="Board Example">
+      </p>
+    <p align="center">
+        Image 1- Game Menu
+      </p>
+
+     <p align="center">
+        <img src="docs/print2.png" alt="Board Example">
+      </p>
+
+     <p align="center">
+        Image 2- Board of size 11x11
+      </p>
 - **Optional rules**: Simplified rules for novice players include restricting moves to certain zones. Advanced rules for experts introduce additional win conditions.
 - **AI difficulty**: AI algorithms can be extended with enhanced heuristics and depth analysis for expert-level gameplay.
 
 ## Game Logic
 ### Game Configuration Representation
 - Initial configuration is represented using a predicate `initial_state/2`. For example:
-  `initial_state(state(Board, Player))`
+  `initial_state(Size, state(Board, Player))`
+- `Size` is the size of the board, chosen by the user.
 - The board is represented as a list of cells, with each cell being either `empty`, `piece(Player)`, or `stack(Player, Height)`.
 
 ### Internal Game State Representation
 - The game state is maintained using:
-  - **Board**: A list of 49 cells for the 7x7 grid. Each cell is defined as:
+  - **Board**: If the board size is the same as the original game, we will have a list of 49 cells for the 7x7 grid. Each cell is defined as:
 
       - `empty`: No pieces present.
       - `piece(Player)`: A single piece belonging to `Player`.
@@ -150,7 +165,7 @@ Sources regarding rules and game description:
      ```
 
       ```prolog
-                 Player O Playing
+                 Player *white* Playing
                                           
           |  1 |  2 |  3 |  4 |  5 |  6 |  7 |
       ----|----|----|----|----|----|----|----|
@@ -178,7 +193,7 @@ Sources regarding rules and game description:
       
       Position 5,2 selected for stacking.
       
-                 Player X Playing
+                 Player *black* Playing
                                           
           |  1 |  2 |  3 |  4 |  5 |  6 |  7 |
       ----|----|----|----|----|----|----|----|
@@ -213,7 +228,7 @@ Sources regarding rules and game description:
 
       ```prolog
   
-                  Player O Playing
+                  Player *white* Playing
                                           
           |  1 |  2 |  3 |  4 |  5 |  6 |  7 |
       ----|----|----|----|----|----|----|----|
