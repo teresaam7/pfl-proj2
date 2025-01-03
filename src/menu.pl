@@ -1,4 +1,9 @@
 main_menu :-
+    display_logo_banner,
+    get_valid_board_size.
+
+
+display_logo_banner :-
     nl,nl,
     write('\e[33m+------------------------------------------------------------------------+\e[0m'),nl,
     write('\e[33m|                                                                        |\e[0m'),nl,
@@ -21,15 +26,31 @@ main_menu :-
     write('\e[33m|                                                                        |\e[0m'),nl,
     write('\e[33m|                 Please enter the board size (minimum 5):               |\e[0m'),nl,
     write('\e[33m|                                                                        |\e[0m'),nl,
-    write('\e[33m+------------------------------------------------------------------------+\e[0m'),nl,nl,
+    write('\e[33m+------------------------------------------------------------------------+\e[0m'),nl,nl.
+
+get_valid_board_size :-
     write('\e[37mEnter board size: \e[0m'),
-    read(Size),
-    (Size >= 5 ->
-        show_game_options(Size)
-    ;
-        write('Board size must be at least 5. Please try again.'), nl,
-        main_menu
-    ).
+    read_board_size(Size),
+    process_board_size(Size).
+
+read_board_size(Size) :-
+    catch(read(Size), Error, (
+        write('Invalid input. Please enter a number.'), nl,
+        get_valid_board_size
+    )).
+
+process_board_size(Size) :-
+    validate_board_size(Size).
+
+validate_board_size(Size) :-
+    integer(Size),
+    Size >= 5,
+    !,
+    show_game_options(Size).
+
+validate_board_size(_) :-
+    write('Board size must be at least 5. Please try again.'), nl,
+    get_valid_board_size.
 
 % Modified show_game_options to include board size
 show_game_options(Size) :-
