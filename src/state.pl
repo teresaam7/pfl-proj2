@@ -1,12 +1,12 @@
-initial_state(state(Board, white)) :-
-    empty_board(Board).
+initial_state(Size, state(Board, white)) :-
+    empty_board(Size, Board).
 
-empty_board(Board) :-
-    length(Board, 7),
-    maplist(empty_row, Board).
+empty_board(Size, Board) :-
+    length(Board, Size),
+    maplist(empty_row(Size), Board).
 
-empty_row(Row) :-
-    length(Row, 7),
+empty_row(Size, Row) :-
+    length(Row, Size),
     maplist(=(empty), Row).
 
 % Clause when the game is over (Winner is not 'none').
@@ -67,18 +67,28 @@ process_human_pie_response(_, _, _, _, _) :-
 
 % Clause when there are pieces in central positions.
 pie_rule_decision(state(Board, white), 'y') :-
-    central_positions(Central),
+    length(Board, Size),
+    central_positions(Size, Central),
     count_pieces(Board, white, Central, Count),
     Count > 0.
 
 % Clause when there are no pieces in central positions.
 pie_rule_decision(state(Board, white), 'n') :-
-    central_positions(Central),
+    length(Board, Size),
+    central_positions(Size, Central),
     count_pieces(Board, white, Central, Count),
     Count =< 0.
 
-central_positions([(4, 4), (3, 4), (4, 3), (4, 5), (5, 4), (3, 3), (3, 5), (5, 3), (5, 5)]).
-
+central_positions(Size, Positions) :-
+    Mid is (Size + 1) div 2,
+    Mid1 is Mid - 1,
+    Mid2 is Mid + 1,
+    findall((R,C), (
+        member(R, [Mid1, Mid, Mid2]),
+        member(C, [Mid1, Mid, Mid2]),
+        R > 0, R =< Size,
+        C > 0, C =< Size
+    ), Positions).
 
 count_pieces(Board, Player, Positions, Count) :-
     findall(Position, (member(Position, Positions), is_player_at(Board, Position, Player)), Found),
@@ -136,8 +146,8 @@ determine_player_type(white, Player1, _, PieRule, Player1) :-
 % Clause for determining player type for all other cases.
 determine_player_type(_, _, Player2, _, Player2).
 
-start_game(Player1, Player2) :-
-    initial_state(GameState),
+start_game(Player1, Player2, Size) :-
+    initial_state(Size, GameState),
     game_loop(GameState, Player1, Player2, 0, 'n').
 
 choose_move(GameState, computer(1), Move) :-
@@ -161,30 +171,33 @@ choose_move(GameState, human, Move) :-
 handle_move_input(_, 0, exit).
     
 %Both Input and Move are valid.
-handle_move_input(GameState, (Row, Col), Move) :-
-    valid_input(Row, Col),   
+handle_move_input(state(Board, Player), (Row, Col), Move) :-
+    length(Board, Size),
+    valid_input(Row, Col, Size),   
     valid_move(GameState, move(Row, Col)), 
     !,                      
     Move = move(Row, Col).  
 
 %Invalid Input.
-handle_move_input(_, (Row, Col), _) :-
-    \+ valid_input(Row, Col),
+handle_move_input(state(Board, Player), (Row, Col), _) :-
+    length(Board, Size),
+    \+ valid_input(Row, Col, Size),
     write('Invalid input! Please enter (Row, Col) .'), nl,
     fail.
 
 %Valid Input, Invalid Move.
-handle_move_input(GameState, (Row, Col), _) :-
-    valid_input(Row, Col),    
+handle_move_input(state(Board, Player), (Row, Col), _) :-
+    length(Board, Size),
+    valid_input(Row, Col, Size),    
     \+ valid_move(GameState, move(Row, Col)),
     write('Invalid move! That cell is already occupied or invalid.'), nl,
     fail.
 
 %Helper function to validate Input.
-valid_input(Row, Col) :-
+valid_input(Row, Col, Size) :-
     integer(Row), integer(Col),
-    Row > 0, Row =< 7,
-    Col > 0, Col =< 7.
+    Row > 0, Row =< Size,
+    Col > 0, Col =< Size.
     
 
 
@@ -295,12 +308,12 @@ check_diagonal_line(Line, Player, Result) :-
 
 check_line(Line, RowIdx, Player, Result) :-
     append(Beginning, [Player, Player, Player|_], Line),
- length(Beginning, Offset),
-        O1 is Offset +1,
-        O2 is Offset +2,
-        O3 is Offset +3,
+    length(Beginning, Offset),
+    O1 is Offset + 1,   
+    O2 is Offset + 2,    
+    O3 is Offset + 3,   
     Result = [
-        (RowIdx,O1),
+        (RowIdx, O1),
         (RowIdx, O2),
         (RowIdx, O3)
     ].
@@ -395,7 +408,6 @@ next_player(black, white).
 
 %----------------------------------------------------------------
 
-% Encontrar o melhor movimento baseado em estrat�gia greedy
 best_greedy_move(state(Board, Player), Moves, BestMove) :-
     findall(Score-Move, (
         member(Move, Moves),
@@ -444,61 +456,67 @@ find_line_of_two(Board, Player, Line) :-
 
 % Check horizontal sequences of two pieces
 check_horizontal_two(Board, Player, [(Row,Col1), (Row,Col2)]) :-
-    between(1, 7, Row),
-    between(1, 6, Col1),
+    length(Board, Size),
+    between(1, Size, Row),
+    between(1, Size-1, Col1),
     Col2 is Col1 + 1,
     nth1(Row, Board, RowList),
     nth1(Col1, RowList, Player),
     nth1(Col2, RowList, Player),
     (Col1 > 1, Col3 is Col1 - 1, nth1(Col3, RowList, empty);
-     Col2 < 7, Col3 is Col2 + 1, nth1(Col3, RowList, empty)).
+     Col2 < Size, Col3 is Col2 + 1, nth1(Col3, RowList, empty)).
 
 % Check vertical sequences of two pieces
 check_vertical_two(Board, Player, [(Row1,Col), (Row2,Col)]) :-
-    between(1, 6, Row1),
-    between(1, 7, Col),
+    length(Board, Size),
+    between(1, Size-1, Row1),
+    between(1, Size, Col),
     Row2 is Row1 + 1,
     nth1(Row1, Board, Row1List),
     nth1(Row2, Board, Row2List),
     nth1(Col, Row1List, Player),
     nth1(Col, Row2List, Player),
     (Row1 > 1, Row3 is Row1 - 1, nth1(Row3, Board, Row3List), nth1(Col, Row3List, empty);
-     Row2 < 7, Row3 is Row2 + 1, nth1(Row3, Board, Row3List), nth1(Col, Row3List, empty)).
+     Row2 < Size, Row3 is Row2 + 1, nth1(Row3, Board, Row3List), nth1(Col, Row3List, empty)).
 
 can_block_line([(R1,C1), (R2,C2)], Row, Col) :-
     % Calculate the position that would complete the line
     predict_third_position((R1,C1), (R2,C2), (Row,Col)).
 
 predict_third_position((R1, C1), (R2, C2), (R3, C3)) :-
-    (   R1 = R2, R3 = R1,
-        (C3 is C1 - 1; C3 is C2 + 1)
+    (   R1 = R2, 
+        R3 = R1,
+        (   C3 is C1 - 1    
+        ;   C3 is C2 + 1    
+        )
     );
-    (   C1 = C2, C3 = C1,
-        (R3 is R1 - 1; R3 is R2 + 1)
+    (   C1 = C2, 
+        C3 = C1,
+        (   R3 is R1 - 1    
+        ;   R3 is R2 + 1    
+        )
     );
-   
-    (   DR is R2 - R1, 
-        DC is C2 - C1, 
-        abs(DR) =:= abs(DC), 
-        (   
-            R3 is R1 - DR,
-            C3 is C1 - DC
-        ;   
-            R3 is R2 + DR,
-            C3 is C2 + DC
+    (   DR is R2 - R1,      
+        DC is C2 - C1,      
+        abs(DR) =:= abs(DC),
+        (   R3 is R1 - DR,  
+            C3 is C1 - DC   
+        ;   R3 is R2 + DR, 
+            C3 is C2 + DC   
         )
     ).
 
 
 can_form_own_line(Board, Row, Col, Player, Score) :-
     % Count how many potential lines this move could form
+    length(Board, Size),
     findall(1, (
         find_line_of_two(Board, Player, Line),
-        can_complete_line(Line, Row, Col)
+        can_complete_line(Line, Row, Col, Size)
     ), Counts),
     length(Counts, Score).
 
-can_complete_line([(R1,C1), (R2,C2)], Row, Col) :-
+can_complete_line([(R1,C1), (R2,C2)], Row, Col, Size) :-
     DR is R2 - R1,
     DC is C2 - C1,
     
@@ -509,17 +527,18 @@ can_complete_line([(R1,C1), (R2,C2)], Row, Col) :-
         Row =:= R2 + DR,
         Col =:= C2 + DC
     ),
-    Row > 0, Row =< 7, Col > 0, Col =< 7.
+    Row > 0, Row =< Size, Col > 0, Col =< Size.
 
 % Clause for when there are opponent pieces on the board.
 calculate_proximity_score(Board, Row, Col, Opponent, Score) :-
+    length(Board, Size),
     findall(Distance, (
         find_opponent_piece(Board, Opponent, OppRow, OppCol),
         calculate_distance((Row, Col), (OppRow, OppCol), Distance)
     ), Distances),
     Distances \= [], % Ensure there are distances
     min_list(Distances, MinDistance),
-    Score is max(0, 7 - MinDistance).
+    Score is max(0, Size - MinDistance).
 
 % Clause for when there are no opponent pieces (no proximity score).
 calculate_proximity_score(_, _, _, _, 0).
@@ -527,8 +546,9 @@ calculate_proximity_score(_, _, _, _, 0).
 
 % Helper to find opponent pieces on the board
 find_opponent_piece(Board, Opponent, Row, Col) :-
-    between(1, 7, Row),
-    between(1, 7, Col),
+    length(Board, Size),
+    between(1, Size, Row),
+    between(1, Size, Col),
     nth1(Row, Board, RowList),
     nth1(Col, RowList, Opponent).
 
@@ -551,8 +571,9 @@ find_lines_of_two(_, _, []).
 
 % Diagonal descendent
 check_diagonals_of_two(Board, Player, [(R1, C1), (R2, C2)]) :-
-    between(1, 7, R1),
-    between(1, 7, C1),
+    length(Board, Size),
+    between(1, Size, R1),
+    between(1, Size, C1),
     R2 is R1 + 1,
     C2 is C1 + 1,
     nth1(R1, Board, Row1),
@@ -571,8 +592,9 @@ check_diagonals_of_two(Board, Player, [(R1, C1), (R2, C2)]) :-
 
 % Diagonal ascendent
 check_diagonals_of_two(Board, Player, [(R1, C1), (R2, C2)]) :-
-    between(1, 7, R1),
-    between(1, 7, C1),
+    length(Board, Size),
+    between(1, Size, R1),
+    between(1, Size, C1),
 
     R2 is R1 - 1,
     C2 is C1 + 1,
@@ -591,8 +613,9 @@ check_diagonals_of_two(Board, Player, [(R1, C1), (R2, C2)]) :-
     ).
 
 validate_diagonal_position(Board, Row, Col) :-
-    Row > 0, Row =< 7,
-    Col > 0, Col =< 7,
+    length(Board, Size),
+    Row > 0, Row =< Size,
+    Col > 0, Col =< Size,
     nth1(Row, Board, RowList),
     nth1(Col, RowList, empty).
 
@@ -641,10 +664,12 @@ diagonal_up(Board, Diagonal) :-
     diagonal_up_from(Board, N, StartCol, Diagonal).
 
 diagonal_up_from(Board, Row, Col, []) :-
-    (Row < 1 ; Col > 7).
+    length(Board, Size),
+    (Row < 1 ; Col > Size).
 diagonal_up_from(Board, Row, Col, [(Value,(Row,Col))|Rest]) :-
+    length(Board, Size),
     Row >= 1,
-    Col =< 7,
+    Col =< Size,
     nth1(Row, Board, RowList),
     nth1(Col, RowList, Value),
     NextRow is Row - 1,
