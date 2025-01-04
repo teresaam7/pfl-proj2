@@ -194,7 +194,7 @@ start_game(Player1, Player2, Size) :-
 
 % Select random move for easy computer player (computer(1))
 
-choose_move(GameState, computer(1), Move) :-
+handle_line_of_three(GameState, computer(1), Move) :-
     valid_moves(GameState, Moves),
     random_member(Move, Moves).
 
@@ -484,19 +484,19 @@ next_player(black, white).
 
 % Select the best move based on a greedy evaluation
 
+% Select the best move based on value evaluation
 best_greedy_move(state(Board, Player), Moves, BestMove) :-
     findall(Score-Move, (
         member(Move, Moves),
-        evaluate_greedy_move(state(Board, Player), Move, Score)
+        Move = move(Row, Col),
+        evaluate_position(state(Board, Player), Row, Col, Score)
     ), ScoredMoves),
     % Select move with highest score
     keysort(ScoredMoves, Sorted),
     last(Sorted, _-BestMove).
 
-% Evaluate a potential move with weighted priorities
-
-evaluate_greedy_move(state(Board, Player), move(Row, Col), FinalScore) :-
-    apply_move(Board, Row, Col, Player, NewBoard),
+% Evaluate a specific position
+evaluate_position(state(Board, Player), Row, Col, FinalScore) :-
     next_player(Player, Opponent),
     
     (blocks_opponent_line(Board, Row, Col, Opponent, BlockingScore)
@@ -510,6 +510,11 @@ evaluate_greedy_move(state(Board, Player), move(Row, Col), FinalScore) :-
     % Weight the different factors
     FinalScore is BlockingScore * 1000 + FormLineScore * 800 + ProximityScore * 100.
 
+% Value predicate that wraps evaluate_position
+value(state(Board, Player), Player, Value) :-
+    valid_moves(state(Board, Player), Moves),
+    member(move(Row, Col), Moves),
+    evaluate_position(state(Board, Player), Row, Col, Value).
 % Clause for when there are blocking lines (Count > 0)
 % Check if a move blocks a potential line of an opponent
 
