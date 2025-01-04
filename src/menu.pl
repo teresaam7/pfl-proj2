@@ -24,7 +24,7 @@ display_logo_banner :-
     write('\e[33m|   \e[35mL::::::::::::::::::::::L   OO:::::::::OO         T:::::::::T         \e[33m|\e[0m'),nl,
     write('\e[33m|   \e[35mLLLLLLLLLLLLLLLLLLLLLLLL     OOOOOOOOO           TTTTTTTTTTT         \e[33m|\e[0m'),nl,
     write('\e[33m|                                                                        |\e[0m'),nl,
-    write('\e[33m|                 Please enter the board size (minimum 5):               |\e[0m'),nl,
+    write('\e[33m|          Please enter the board size (minimum 5, maximum 30):          |\e[0m'),nl,
     write('\e[33m|                                                                        |\e[0m'),nl,
     write('\e[33m+------------------------------------------------------------------------+\e[0m'),nl,nl.
 
@@ -45,11 +45,12 @@ process_board_size(Size) :-
 validate_board_size(Size) :-
     integer(Size),
     Size >= 5,
+    Size =< 30,
     !,
     show_game_options(Size).
 
 validate_board_size(_) :-
-    write('Board size must be at least 5. Please try again.'), nl,
+    write('Board size must be between 5 and 30. Please try again.'), nl,
     get_valid_board_size.
 
 % Modified show_game_options to include board size

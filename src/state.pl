@@ -194,7 +194,7 @@ start_game(Player1, Player2, Size) :-
 
 % Select random move for easy computer player (computer(1))
 
-choose_move(GameState, computer(1), Move) :-
+handle_line_of_three(GameState, computer(1), Move) :-
     valid_moves(GameState, Moves),
     random_member(Move, Moves).
 
@@ -482,33 +482,38 @@ next_player(black, white).
 
 %-------------------------GREEDY CHOICE---------------------------------------
 
-% Select the best move based on a greedy evaluation
-
-best_greedy_move(state(Board, Player), Moves, BestMove) :-
+% Select the best move based on value evaluation
+best_greedy_move(GameState, Moves, BestMove) :-
     findall(Score-Move, (
         member(Move, Moves),
-        evaluate_greedy_move(state(Board, Player), Move, Score)
+        move(Row, Col) = Move,
+        evaluate_position(GameState, Row, Col, Score)
     ), ScoredMoves),
-    % Select move with highest score
     keysort(ScoredMoves, Sorted),
     last(Sorted, _-BestMove).
 
-% Evaluate a potential move with weighted priorities
-
-evaluate_greedy_move(state(Board, Player), move(Row, Col), FinalScore) :-
-    apply_move(Board, Row, Col, Player, NewBoard),
+% Evaluate position returns a score based on the move position
+evaluate_position(GameState, Row, Col, FinalScore) :-
+    state(Board, Player) = GameState,
     next_player(Player, Opponent),
-    
     (blocks_opponent_line(Board, Row, Col, Opponent, BlockingScore)
     ; BlockingScore = 0),
-    
     (can_form_own_line(Board, Row, Col, Player, FormLineScore)
     ; FormLineScore = 0),
-    
     calculate_proximity_score(Board, Row, Col, Opponent, ProximityScore),
-    
-    % Weight the different factors
     FinalScore is BlockingScore * 1000 + FormLineScore * 800 + ProximityScore * 100.
+
+% Value predicate that wraps evaluate_position
+value(GameState, Player, Value) :-
+    valid_moves(GameState, Moves),
+    findall(Score, (
+        member(move(Row, Col), Moves),
+        evaluate_position(GameState, Row, Col, Score)
+    ), Scores),
+    (Scores = [] -> 
+        Value = -1000
+    ;   max_list(Scores, Value)
+    ).
 
 % Clause for when there are blocking lines (Count > 0)
 % Check if a move blocks a potential line of an opponent
@@ -543,9 +548,10 @@ check_horizontal_two(Board, Player, [(Row,Col1), (Row,Col2)]) :-
     between(1, Size, Row),
     between(1, Size-1, Col1),
     Col2 is Col1 + 1,
-    nth1(Row, Board, RowList),
-    nth1(Col1, RowList, Player),
-    nth1(Col2, RowList, Player),
+nth1(Row, Board, RowList),
+
+    (nth1(Col1, RowList, Player) ; nth1(Col1, RowList, stack(Player))),
+    (nth1(Col2, RowList, Player) ; nth1(Col2, RowList, stack(Player))),
     (Col1 > 1, Col3 is Col1 - 1, nth1(Col3, RowList, empty);
      Col2 < Size, Col3 is Col2 + 1, nth1(Col3, RowList, empty)).
 
