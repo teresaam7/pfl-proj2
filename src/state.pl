@@ -510,10 +510,12 @@ value(GameState, Player, Value) :-
         member(move(Row, Col), Moves),
         evaluate_position(GameState, Row, Col, Score)
     ), Scores),
-    (Scores = [] -> 
-        Value = -1000
-    ;   max_list(Scores, Value)
-    ).
+    handle_scores(Scores, Value).
+
+handle_scores([], -1000).  
+handle_scores(Scores, Value) :-
+    max_list(Scores, Value). 
+
 
 % Clause for when there are blocking lines (Count > 0)
 % Check if a move blocks a potential line of an opponent
