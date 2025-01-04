@@ -308,7 +308,7 @@ This predicate will return a list of all valid moves based on the current board 
 
 ### Game State Evaluation
 
-The **value/3**  predicateevaluates the game state from a player's perspective by examining valid moves and their potential outcomes:
+The **value/3**  predicate evaluates the game state from a player's perspective by examining valid moves and their potential outcomes:
      
      value(+GameState, +Player, -Value)
    
