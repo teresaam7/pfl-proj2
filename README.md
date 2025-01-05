@@ -138,7 +138,7 @@ A stack may contain **no more than two pieces** at any given time.
        1 |  . |  . |  . |  . |  . |  . |  . | 
      ____|____|____|____|____|____|____|____|
    ```
-  #### Intermediate state
+#### Intermediate state
 
    ```prolog
      [[piece(player1), empty, empty, piece(player1), empty, empty, empty],
@@ -200,7 +200,7 @@ A stack may contain **no more than two pieces** at any given time.
 
    ```
 
-  #### Final state
+#### Final state
 
    ```prolog
         [[empty, stack(player2, 2), empty, empty, stack(player1, 2), empty, piece(player1)],
