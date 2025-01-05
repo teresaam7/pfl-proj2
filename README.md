@@ -3,12 +3,13 @@
 ## Identification
 **Game**: Line Of Three (LOT)  
 **Group**: LOT_7
+
 **Members**:
 
 | Student Number | Name        | Contribution (%) | Tasks Performed                        |
 |----------------|------------------|------------------|----------------------------------------|
-| up202208247      | Diana Nunes          | 50%   | [Task1, Task2, ...]                   |
-| up202206828      | Teresa Mascarenhas          | 50%   | [Task1, Task2, ...]                   |
+| up202208247      | Diana Nunes          | 50%   | **1. Pie Rule Implementation:**<br>   - Decision logic development<br>   - Position switching system<br>   - Second turn validation<br>   - Player swap mechanism<br><br> **2. Menu System:**<br>   - Game mode selection<br>   - Player type options<br>   - Board size selection<br><br> **3. Game State Control:**<br>   - Turn tracking<br>   - Player state management<br>   - Board state validation<br>   - Game over conditions<br><br> **4. Move Validation:**<br>   - Position checking<br>   - Boundary validation<br>   - Occupied space detection<br><br> **5. Basic Line Detection:**<br>   - Horizontal checking<br>   - Vertical checking<br>   - Win condition validation<br> <br>                   |
+| up202206828      | Teresa Mascarenhas          | 50%   | **1. Greedy Algorithm:**<br>   - Move evaluation system<br>   - Position scoring<br>   - Strategic decision-making<br>   - Best move selection<br><br> **2. Game Interface:**<br>   - Board visualization<br>   - Piece representation<br>   - Stack display<br>   - Move highlighting<br><br> **3. AI Strategy:**<br>   - Blocking detection<br>   - Threat assessment<br>   - Defensive positioning<br><br> **4. Position Analysis:**<br>   - Proximity scoring<br>   - Value calculation<br>   - Board analysis<br><br> **5. Advanced Detection:**<br>   - Diagonal checking<br>   - Stack pattern recognition<br>   - Complex win conditions <br> <br>                  |
 
 ## Installation and Execution
 ### Prerequisites
