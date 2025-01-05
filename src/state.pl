@@ -48,7 +48,7 @@ handle_turn(GameState, Player1, Player2, CurrentPlayer, TurnCount, PieRule) :-
 
 %------------------------------PIE RULE---------------------------------------
 
-% Handle pie rule decision for advanced AI (computer(2)) -> hard computer
+% Handle pie rule decision for advanced AI (computer(2)) - hard computer
 % Uses strategic decision making based on board position analysis
 
 ask_pie_rule(GameState, computer(2), Player2, TurnCount) :-
@@ -56,7 +56,7 @@ ask_pie_rule(GameState, computer(2), Player2, TurnCount) :-
     nl, format("Computer chooses to ~w to switch places.~n", [Response]),
     handle_pie_rule_response(GameState, computer(2), Player2, TurnCount, Response).
 
-% Handle pie rule decision for basic AI (computer(1)) -> easy computer
+% Handle pie rule decision for basic AI (computer(1)) - easy computer
 % Uses random decision making
 
 % Handle pie rule decision for human player
@@ -194,7 +194,7 @@ start_game(Player1, Player2, Size) :-
 
 % Select random move for easy computer player (computer(1))
 
-handle_line_of_three(GameState, computer(1), Move) :-
+choose_move(GameState, computer(1), Move) :-
     valid_moves(GameState, Moves),
     random_member(Move, Moves).
 
@@ -338,9 +338,11 @@ find_lines_of_three(Board, Player, Lines) :-
     setof(Line, (valid_line(Board, Player, Line)), Lines).
 
 valid_line(Board, Player, Line) :-
-    (check_lines(Board, Player, Line);
-     check_columns(Board, Player, Line);
-     check_diagonals(Board, Player, Line)).
+    check_lines(Board, Player, Line).
+valid_line(Board, Player, Line) :-
+    check_columns(Board, Player, Line).
+valid_line(Board, Player, Line) :-
+    check_diagonals(Board, Player, Line).
 
 % Check for horizontal lines of three.
 
@@ -451,9 +453,14 @@ game_over(state(_, _), none).
 
 line_of_stacks(Board, Winner) :-
     stack_symbol(Winner, Stack),
-    (check_lines_stacks(Board, Stack);
-     check_columns_stacks(Board, Stack);
-     check_diagonals_stacks(Board, Stack)).
+    check_lines_stacks(Board, Stack).
+line_of_stacks(Board, Winner) :-
+    stack_symbol(Winner, Stack),
+    check_columns_stacks(Board, Stack).
+line_of_stacks(Board, Winner) :-
+    stack_symbol(Winner, Stack),
+    check_diagonals_stacks(Board, Stack).
+
 
 check_lines_stacks(Board, Stack) :-
     member(Row, Board),
@@ -496,12 +503,39 @@ best_greedy_move(GameState, Moves, BestMove) :-
 evaluate_position(GameState, Row, Col, FinalScore) :-
     state(Board, Player) = GameState,
     next_player(Player, Opponent),
-    (blocks_opponent_line(Board, Row, Col, Opponent, BlockingScore)
-    ; BlockingScore = 0),
-    (can_form_own_line(Board, Row, Col, Player, FormLineScore)
-    ; FormLineScore = 0),
+    blocks_opponent_line(Board, Row, Col, Opponent, BlockingScore),
+    can_form_own_line(Board, Row, Col, Player, FormLineScore),
     calculate_proximity_score(Board, Row, Col, Opponent, ProximityScore),
     FinalScore is BlockingScore * 1000 + FormLineScore * 800 + ProximityScore * 100.
+
+evaluate_position(GameState, Row, Col, FinalScore) :-
+    state(Board, Player) = GameState,
+    next_player(Player, Opponent),
+    \+ blocks_opponent_line(Board, Row, Col, Opponent, _),
+    BlockingScore = 0,
+    can_form_own_line(Board, Row, Col, Player, FormLineScore),
+    calculate_proximity_score(Board, Row, Col, Opponent, ProximityScore),
+    FinalScore is BlockingScore * 1000 + FormLineScore * 800 + ProximityScore * 100.
+
+evaluate_position(GameState, Row, Col, FinalScore) :-
+    state(Board, Player) = GameState,
+    next_player(Player, Opponent),
+    blocks_opponent_line(Board, Row, Col, Opponent, BlockingScore),
+    \+ can_form_own_line(Board, Row, Col, Player, _),
+    FormLineScore = 0,
+    calculate_proximity_score(Board, Row, Col, Opponent, ProximityScore),
+    FinalScore is BlockingScore * 1000 + FormLineScore * 800 + ProximityScore * 100.
+
+evaluate_position(GameState, Row, Col, FinalScore) :-
+    state(Board, Player) = GameState,
+    next_player(Player, Opponent),
+    \+ blocks_opponent_line(Board, Row, Col, Opponent, _),
+    BlockingScore = 0,
+    \+ can_form_own_line(Board, Row, Col, Player, _),
+    FormLineScore = 0,
+    calculate_proximity_score(Board, Row, Col, Opponent, ProximityScore),
+    FinalScore is BlockingScore * 1000 + FormLineScore * 800 + ProximityScore * 100.
+
 
 % Value predicate that wraps evaluate_position
 value(GameState, Player, Value) :-
@@ -533,32 +567,117 @@ blocks_opponent_line(Board, Row, Col, Opponent, Score) :-
 
 blocks_opponent_line(_, _, _, _, 0).
 
-% Identify a line of two pieces for a player -> in order to avoid the formation of a line of three pieces
+% Identify a line of two pieces for a player - in order to avoid the formation of a line of three pieces
 
 find_line_of_two(Board, Player, Line) :-
-    % Check horizontal lines
-    (check_horizontal_two(Board, Player, Line);
-     % Check vertical lines
-     check_vertical_two(Board, Player, Line);
-     % Check diagonal lines
-     check_diagonals_of_two(Board, Player, Line)).
+    check_horizontal_two(Board, Player, Line).
+find_line_of_two(Board, Player, Line) :-
+    check_vertical_two(Board, Player, Line).
+find_line_of_two(Board, Player, Line) :-
+    check_diagonals_of_two(Board, Player, Line).
 
-% Check horizontal sequences of two pieces
+
+% Check horizontal sequences of two pieces - case 1: standard pieces
+check_horizontal_two(Board, Player, [(Row,Col1), (Row,Col2)]) :-
+    length(Board, Size),
+    between(1, Size, Row),
+    between(1, Size-1, Col1),
+    Col2 is Col1 + 1,
+    nth1(Row, Board, RowList),
+    nth1(Col1, RowList, Player),
+    nth1(Col2, RowList, Player),
+    Col1 > 1,
+    Col3 is Col1 - 1,
+    nth1(Col3, RowList, empty).
 
 check_horizontal_two(Board, Player, [(Row,Col1), (Row,Col2)]) :-
     length(Board, Size),
     between(1, Size, Row),
     between(1, Size-1, Col1),
     Col2 is Col1 + 1,
-nth1(Row, Board, RowList),
+    nth1(Row, Board, RowList),
+    nth1(Col1, RowList, Player),
+    nth1(Col2, RowList, Player),
+    Col2 < Size,
+    Col3 is Col2 + 1,
+    nth1(Col3, RowList, empty).
 
-    (nth1(Col1, RowList, Player) ; nth1(Col1, RowList, stack(Player))),
-    (nth1(Col2, RowList, Player) ; nth1(Col2, RowList, stack(Player))),
-    (Col1 > 1, Col3 is Col1 - 1, nth1(Col3, RowList, empty);
-     Col2 < Size, Col3 is Col2 + 1, nth1(Col3, RowList, empty)).
+% Check horizontal sequences of two pieces - case 2: first piece is stack
+check_horizontal_two(Board, Player, [(Row,Col1), (Row,Col2)]) :-
+    length(Board, Size),
+    between(1, Size, Row),
+    between(1, Size-1, Col1),
+    Col2 is Col1 + 1,
+    nth1(Row, Board, RowList),
+    nth1(Col1, RowList, stack(Player)),
+    nth1(Col2, RowList, Player),
+    Col1 > 1,
+    Col3 is Col1 - 1,
+    nth1(Col3, RowList, empty).
 
-% Check vertical sequences of two pieces
+check_horizontal_two(Board, Player, [(Row,Col1), (Row,Col2)]) :-
+    length(Board, Size),
+    between(1, Size, Row),
+    between(1, Size-1, Col1),
+    Col2 is Col1 + 1,
+    nth1(Row, Board, RowList),
+    nth1(Col1, RowList, stack(Player)),
+    nth1(Col2, RowList, Player),
+    Col2 < Size,
+    Col3 is Col2 + 1,
+    nth1(Col3, RowList, empty).
 
+% Check horizontal sequences of two pieces - case 3: second piece is stack
+check_horizontal_two(Board, Player, [(Row,Col1), (Row,Col2)]) :-
+    length(Board, Size),
+    between(1, Size, Row),
+    between(1, Size-1, Col1),
+    Col2 is Col1 + 1,
+    nth1(Row, Board, RowList),
+    nth1(Col1, RowList, Player),
+    nth1(Col2, RowList, stack(Player)),
+    Col1 > 1,
+    Col3 is Col1 - 1,
+    nth1(Col3, RowList, empty).
+
+check_horizontal_two(Board, Player, [(Row,Col1), (Row,Col2)]) :-
+    length(Board, Size),
+    between(1, Size, Row),
+    between(1, Size-1, Col1),
+    Col2 is Col1 + 1,
+    nth1(Row, Board, RowList),
+    nth1(Col1, RowList, Player),
+    nth1(Col2, RowList, stack(Player)),
+    Col2 < Size,
+    Col3 is Col2 + 1,
+    nth1(Col3, RowList, empty).
+
+% Check horizontal sequences of two pieces - case 4: both pieces are stacks
+check_horizontal_two(Board, Player, [(Row,Col1), (Row,Col2)]) :-
+    length(Board, Size),
+    between(1, Size, Row),
+    between(1, Size-1, Col1),
+    Col2 is Col1 + 1,
+    nth1(Row, Board, RowList),
+    nth1(Col1, RowList, stack(Player)),
+    nth1(Col2, RowList, stack(Player)),
+    Col1 > 1,
+    Col3 is Col1 - 1,
+    nth1(Col3, RowList, empty).
+
+check_horizontal_two(Board, Player, [(Row,Col1), (Row,Col2)]) :-
+    length(Board, Size),
+    between(1, Size, Row),
+    between(1, Size-1, Col1),
+    Col2 is Col1 + 1,
+    nth1(Row, Board, RowList),
+    nth1(Col1, RowList, stack(Player)),
+    nth1(Col2, RowList, stack(Player)),
+    Col2 < Size,
+    Col3 is Col2 + 1,
+    nth1(Col3, RowList, empty).
+
+% Check vertical sequences of two pieces - checking empty space above
 check_vertical_two(Board, Player, [(Row1,Col), (Row2,Col)]) :-
     length(Board, Size),
     between(1, Size-1, Row1),
@@ -568,8 +687,25 @@ check_vertical_two(Board, Player, [(Row1,Col), (Row2,Col)]) :-
     nth1(Row2, Board, Row2List),
     nth1(Col, Row1List, Player),
     nth1(Col, Row2List, Player),
-    (Row1 > 1, Row3 is Row1 - 1, nth1(Row3, Board, Row3List), nth1(Col, Row3List, empty);
-     Row2 < Size, Row3 is Row2 + 1, nth1(Row3, Board, Row3List), nth1(Col, Row3List, empty)).
+    Row1 > 1,
+    Row3 is Row1 - 1,
+    nth1(Row3, Board, Row3List),
+    nth1(Col, Row3List, empty).
+
+% Check vertical sequences of two pieces - checking empty space below
+check_vertical_two(Board, Player, [(Row1,Col), (Row2,Col)]) :-
+    length(Board, Size),
+    between(1, Size-1, Row1),
+    between(1, Size, Col),
+    Row2 is Row1 + 1,
+    nth1(Row1, Board, Row1List),
+    nth1(Row2, Board, Row2List),
+    nth1(Col, Row1List, Player),
+    nth1(Col, Row2List, Player),
+    Row2 < Size,
+    Row3 is Row2 + 1,
+    nth1(Row3, Board, Row3List),
+    nth1(Col, Row3List, empty).
 
 % Determine if a position blocks a line
 
@@ -580,27 +716,38 @@ can_block_line([(R1,C1), (R2,C2)], Row, Col) :-
 % Predict third position in a line
 
 predict_third_position((R1, C1), (R2, C2), (R3, C3)) :-
-    (   R1 = R2, 
-        R3 = R1,
-        (   C3 is C1 - 1    
-        ;   C3 is C2 + 1    
-        )
-    );
-    (   C1 = C2, 
-        C3 = C1,
-        (   R3 is R1 - 1    
-        ;   R3 is R2 + 1    
-        )
-    );
-    (   DR is R2 - R1,      
-        DC is C2 - C1,      
-        abs(DR) =:= abs(DC),
-        (   R3 is R1 - DR,  
-            C3 is C1 - DC   
-        ;   R3 is R2 + DR, 
-            C3 is C2 + DC   
-        )
-    ).
+    R1 = R2,
+    R3 = R1,
+    C3 is C1 - 1.
+
+predict_third_position((R1, C1), (R2, C2), (R3, C3)) :-
+    R1 = R2,
+    R3 = R1,
+    C3 is C2 + 1.
+
+predict_third_position((R1, C1), (R2, C2), (R3, C3)) :-
+    C1 = C2,
+    C3 = C1,
+    R3 is R1 - 1.
+
+predict_third_position((R1, C1), (R2, C2), (R3, C3)) :-
+    C1 = C2,
+    C3 = C1,
+    R3 is R2 + 1.
+
+predict_third_position((R1, C1), (R2, C2), (R3, C3)) :-
+    DR is R2 - R1,
+    DC is C2 - C1,
+    abs(DR) =:= abs(DC),
+    R3 is R1 - DR,
+    C3 is C1 - DC.
+
+predict_third_position((R1, C1), (R2, C2), (R3, C3)) :-
+    DR is R2 - R1,
+    DC is C2 - C1,
+    abs(DR) =:= abs(DC),
+    R3 is R2 + DR,
+    C3 is C2 + DC.
 
 
 can_form_own_line(Board, Row, Col, Player, Score) :-
@@ -617,15 +764,22 @@ can_form_own_line(Board, Row, Col, Player, Score) :-
 can_complete_line([(R1,C1), (R2,C2)], Row, Col, Size) :-
     DR is R2 - R1,
     DC is C2 - C1,
-    
-    (
-        Row =:= R1 - DR,
-        Col =:= C1 - DC
-    ;
-        Row =:= R2 + DR,
-        Col =:= C2 + DC
-    ),
-    Row > 0, Row =< Size, Col > 0, Col =< Size.
+    Row =:= R1 - DR,
+    Col =:= C1 - DC,
+    Row > 0, 
+    Row =< Size, 
+    Col > 0, 
+    Col =< Size.
+
+can_complete_line([(R1,C1), (R2,C2)], Row, Col, Size) :-
+    DR is R2 - R1,
+    DC is C2 - C1,
+    Row =:= R2 + DR,
+    Col =:= C2 + DC,
+    Row > 0, 
+    Row =< Size, 
+    Col > 0, 
+    Col =< Size.
 
 % Clause for when there are opponent pieces on the board.
 
@@ -669,6 +823,21 @@ find_lines_of_two(Board, Player, Lines) :-
     setof(Line, (valid_line_of_two(Board, Player, Line)), Lines), !.
 find_lines_of_two(_, _, []).
 
+% Diagonal descendent 
+check_diagonals_of_two(Board, Player, [(R1, C1), (R2, C2)]) :-
+    length(Board, Size),
+    between(1, Size, R1),
+    between(1, Size, C1),
+    R2 is R1 + 1,
+    C2 is C1 + 1,
+    nth1(R1, Board, Row1),
+    nth1(R2, Board, Row2),
+    nth1(C1, Row1, Player),
+    nth1(C2, Row2, Player),
+    R3 is R1 - 1,
+    C3 is C1 - 1,
+    validate_diagonal_position(Board, R3, C3).
+
 % Diagonal descendent
 check_diagonals_of_two(Board, Player, [(R1, C1), (R2, C2)]) :-
     length(Board, Size),
@@ -680,37 +849,39 @@ check_diagonals_of_two(Board, Player, [(R1, C1), (R2, C2)]) :-
     nth1(R2, Board, Row2),
     nth1(C1, Row1, Player),
     nth1(C2, Row2, Player),
-    (   
-        R3 is R1 - 1,
-        C3 is C1 - 1,
-        validate_diagonal_position(Board, R3, C3)
-    ;   
-        R3 is R2 + 1,
-        C3 is C2 + 1,
-        validate_diagonal_position(Board, R3, C3)
-    ).
+    R3 is R2 + 1,
+    C3 is C2 + 1,
+    validate_diagonal_position(Board, R3, C3).
 
-% Diagonal ascendent
+% Diagonal ascendent 
 check_diagonals_of_two(Board, Player, [(R1, C1), (R2, C2)]) :-
     length(Board, Size),
     between(1, Size, R1),
     between(1, Size, C1),
-
     R2 is R1 - 1,
     C2 is C1 + 1,
     nth1(R1, Board, Row1),
     nth1(R2, Board, Row2),
     nth1(C1, Row1, Player),
     nth1(C2, Row2, Player),
-    (   
-        R3 is R1 + 1,
-        C3 is C1 - 1,
-        validate_diagonal_position(Board, R3, C3)
-    ;   
-        R3 is R2 - 1,
-        C3 is C2 + 1,
-        validate_diagonal_position(Board, R3, C3)
-    ).
+    R3 is R1 + 1,
+    C3 is C1 - 1,
+    validate_diagonal_position(Board, R3, C3).
+
+% Diagonal ascendent 
+check_diagonals_of_two(Board, Player, [(R1, C1), (R2, C2)]) :-
+    length(Board, Size),
+    between(1, Size, R1),
+    between(1, Size, C1),
+    R2 is R1 - 1,
+    C2 is C1 + 1,
+    nth1(R1, Board, Row1),
+    nth1(R2, Board, Row2),
+    nth1(C1, Row1, Player),
+    nth1(C2, Row2, Player),
+    R3 is R2 - 1,
+    C3 is C2 + 1,
+    validate_diagonal_position(Board, R3, C3).
 
 validate_diagonal_position(Board, Row, Col) :-
     length(Board, Size),
@@ -754,7 +925,10 @@ diagonal_down(Board, Diagonal) :-
 
 diagonal_down_from(Board, Row, Col, []) :-
     length(Board, N),
-    (Row > N ; Col > N).
+    Row > N.
+diagonal_down_from(Board, Row, Col, []) :-
+    length(Board, N),
+    Col > N.
 diagonal_down_from(Board, Row, Col, [(Value,(Row,Col))|Rest]) :-
     length(Board, N),
     Row =< N,
@@ -784,7 +958,10 @@ diagonal_up(Board, Diagonal) :-
 
 diagonal_up_from(Board, Row, Col, []) :-
     length(Board, Size),
-    (Row < 1 ; Col > Size).
+    Row < 1.
+diagonal_up_from(Board, Row, Col, []) :-
+    length(Board, Size),
+    Col > Size.
 diagonal_up_from(Board, Row, Col, [(Value,(Row,Col))|Rest]) :-
     length(Board, Size),
     Row >= 1,

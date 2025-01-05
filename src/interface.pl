@@ -1,15 +1,43 @@
-% Mostra o tabuleiro com tamanho dinâmico
+% Displays the current game state including the board and current player
 display_game(state(Board, Player)) :-
     nl,
-    write('           '),
-    (Player = white -> write('Player *white* Playing') ; write('Player *black* Playing')), nl,
-    write('                                    '), nl,
+    board_width(Board, Width),
+    center_text_spaces(Width, Player, Spaces),
+    write_spaces(Spaces),
+    display_player(Player),
+    nl,
+    write(' '),
+    nl,
     print_column_headers(Board),
     print_horizontal_line(Board),
     reverse(Board, DisplayBoard),
     print_board(DisplayBoard, 1).
 
-% Imprime os números no topo do tabuleiro (colunas)
+% Display text for players turn
+display_player(white) :-
+    write('Player *white* Playing').
+display_player(black) :-
+    write('Player *black* Playing').
+
+board_width(Board, Width) :-
+    length(Board, Size),
+    Width is Size * 4 + 1.
+
+center_text_spaces(BoardWidth, Player, Spaces) :-
+    player_text_length(Player, TextLength),
+    Spaces is (BoardWidth - TextLength) // 2.
+
+player_text_length(white, 23). % "Player *white* Playing"
+player_text_length(black, 23). % "Player *black* Playing"
+
+write_spaces(0).
+write_spaces(N) :-
+    N > 0,
+    write(' '),
+    N1 is N - 1,
+    write_spaces(N1).
+
+% Print column numbers at the top of the board
 print_column_headers(Board) :-
     length(Board, Size),
     write('    |'),
@@ -23,7 +51,7 @@ print_column_numbers(N, Size) :-
     print_column_numbers(N1, Size).
 print_column_numbers(_, _).
 
-% Imprime linha horizontal dinâmica
+% Print horizontal separator line
 print_horizontal_line(Board) :-
     length(Board, Size),
     write('____'),
@@ -36,7 +64,7 @@ print_horizontal_segments(Size) :-
     Size1 is Size - 1,
     print_horizontal_segments(Size1).
 
-% Imprime cada linha do tabuleiro
+
 print_board([], _).
 print_board([Row|Rows], N) :-
     length(Rows, RemainingRows),
@@ -48,22 +76,36 @@ print_board([Row|Rows], N) :-
     N1 is N + 1,
     print_board(Rows, N1).
 
-% Imprime células de uma linha
+% Print different cell types in a row
 print_row([]).
-print_row([Cell|Cells]) :-
-    (Cell = empty -> print_text(" .") ;
-     Cell = white -> print_text(" "), print_text([0x25CB]) ;    % ○
-     Cell = black -> print_text(" "), print_text([0x25CF]) ;    % ●
-     Cell = 8 -> print_text([0x25CB, 0x25CB]) ; % ○○
-     Cell = x -> print_text([0x25CF, 0x25CF])), % ●●
-     write(' | '),
+print_row([empty|Cells]) :-
+    print_text(" ."),
+    write(' | '),
+    print_row(Cells).
+print_row([white|Cells]) :-
+    print_text(" "),
+    print_text([0x25CB]), % ○
+    write(' | '),
+    print_row(Cells).
+print_row([black|Cells]) :-
+    print_text(" "),
+    print_text([0x25CF]), % ●
+    write(' | '),
+    print_row(Cells).
+print_row([8|Cells]) :-
+    print_text([0x25CB, 0x25CB]), % ○○
+    write(' | '),
+    print_row(Cells).
+print_row([x|Cells]) :-
+    print_text([0x25CF, 0x25CF]), % ●●
+    write(' | '),
     print_row(Cells).
 
-% Gera cabeçalhos das linhas numericamente (de baixo para cima)
+% Print row number at start of line
 header_line(Index) :-
     format('~|~t~d~3+', [Index]).
 
-% Função auxiliar para exibir texto
+% Print Unicode characters
 print_text([]) :- !.
 print_text([H|T]) :-
     char_code(Char, H),
