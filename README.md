@@ -8,8 +8,8 @@
 
 | Student Number | Name        | Contribution (%) | Tasks Performed                        |
 |----------------|------------------|------------------|----------------------------------------|
-| up202208247      | Diana Nunes          | 50%   | **1. Pie Rule Implementation:**<br>   - Decision logic development<br>   - Position switching system<br>   - Second turn validation<br>   - Player swap mechanism<br><br> **2. Menu System:**<br>   - Game mode selection<br>   - Player type options<br>   - Board size selection<br><br> **3. Game State Control:**<br>   - Turn tracking<br>   - Player state management<br>   - Board state validation<br>   - Game over conditions<br><br> **4. Move Validation:**<br>   - Position checking<br>   - Boundary validation<br>   - Occupied space detection<br><br> **5. Basic Line Detection:**<br>   - Horizontal checking<br>   - Vertical checking<br>   - Win condition validation<br> <br>                   |
-| up202206828      | Teresa Mascarenhas          | 50%   | **1. Greedy Algorithm:**<br>   - Move evaluation system<br>   - Position scoring<br>   - Strategic decision-making<br>   - Best move selection<br><br> **2. Game Interface:**<br>   - Board visualization<br>   - Piece representation<br>   - Stack display<br>   - Move highlighting<br><br> **3. AI Strategy:**<br>   - Blocking detection<br>   - Threat assessment<br>   - Defensive positioning<br><br> **4. Position Analysis:**<br>   - Proximity scoring<br>   - Value calculation<br>   - Board analysis<br><br> **5. Advanced Detection:**<br>   - Diagonal checking<br>   - Stack pattern recognition<br>   - Complex win conditions <br> <br>                  |
+| up202208247      | Diana Nunes          | 50%   | Pie Rule Implementation,  Menu System, Game State Control, Move Validation, Basic Line Detection: (Horizontal checking, Vertical checking)                |
+| up202206828      | Teresa Mascarenhas          | 50%   | Greedy Algorithm:, Game Interface, AI Strategy, Position Analysis, Advanced Detection:( diagonal checking, stack pattern recognition)                |
 
 ## Installation and Execution
 ### Prerequisites
@@ -46,15 +46,7 @@
 ### Execution on Windows
 1. Open the SICStus Prolog application.
 2. Navigate to the game directory in the Prolog console:
-3. Load the game:
-   ```prolog
-   consult('game.pl').  
-   ['game.pl'].  % alternative solution
-   ```
-4. Start the game:
-   ```prolog
-   play.
-   ```
+3. Load the game (same process as Linux)
 
 ## Description of the Game
 **Line Of Three (LOT)** is a strategic game played on a 7x7 orthogonal grid. The goal is to create a line of three stacks, each consisting of two pieces. The game is designed for Human vs Human, Human vs AI, and AI vs AI interactions.
@@ -80,13 +72,6 @@ A stack may contain **no more than two pieces** at any given time.
   - Horizontally
   - Vertically
   - Diagonally
-
-Sources regarding rules and game description: 
-
-- https://boardgamegeek.com/boardgame/127989/lot
-- https://boardgamegeek.com/video/164442/lot/lot-line-of-three-game-overview-and-rules-explanat
-- https://boardgamegeek.com/filepage/217760/lot-rules-in-english
-
 
 
 ## Considerations for Game Extensions
