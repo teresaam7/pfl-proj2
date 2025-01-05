@@ -8,8 +8,8 @@
 
 | Student Number | Name        | Contribution (%) | Tasks Performed                        |
 |----------------|------------------|------------------|----------------------------------------|
-| up202208247      | Diana Nunes          | 50%   | Pie Rule Implementation,  Menu System, Game State Control, Move Validation, Basic Line Detection: (Horizontal checking, Vertical checking)                |
-| up202206828      | Teresa Mascarenhas          | 50%   | Greedy Algorithm:, Game Interface, AI Strategy, Position Analysis, Advanced Detection:( diagonal checking, stack pattern recognition)                |
+| up202208247      | Diana Nunes          | 50%   | Pie Rule Implementation,  Menu System, Game State Control, Move Validation, Basic Line Detection: (horizontal checking, vertical checking)                |
+| up202206828      | Teresa Mascarenhas          | 50%   | Greedy Algorithm, Game Interface, AI Strategy, Position Analysis, Advanced Detection: (diagonal checking, stack pattern recognition)                |
 
 ## Installation and Execution
 ### Prerequisites
