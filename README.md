@@ -108,9 +108,9 @@ A stack may contain **no more than two pieces** at any given time.
       - `piece(Player)`: A single piece belonging to `Player`.
       - `stack(Player, Height)`: A stack of pieces belonging to `Player`, with `Height` indicating the number of pieces in the stack.
  
-    #### Initial state
+#### Initial state
     
-    ```prolog
+   ```prolog
     [[empty, empty, empty, empty, empty, empty, empty],
      [empty, empty, empty, empty, empty, empty, empty],
      [empty, empty, empty, empty, empty, empty, empty],
@@ -118,9 +118,9 @@ A stack may contain **no more than two pieces** at any given time.
      [empty, empty, empty, empty, empty, empty, empty],
      [empty, empty, empty, empty, empty, empty, empty],
      [empty, empty, empty, empty, empty, empty, empty]]
-     ```
+     
   
-     ```
+     
          |  1 |  2 |  3 |  4 |  5 |  6 |  7 |
      ----|----|----|----|----|----|----|----|
        7 |  . |  . |  . |  . |  . |  . |  . | 
@@ -137,10 +137,10 @@ A stack may contain **no more than two pieces** at any given time.
      ____|____|____|____|____|____|____|____|
        1 |  . |  . |  . |  . |  . |  . |  . | 
      ____|____|____|____|____|____|____|____|
-     ```
-      ##### Intermediate state
+   ```
+  #### Intermediate state
 
-     ```
+   ```prolog
      [[piece(player1), empty, empty, piece(player1), empty, empty, empty],
        [piece(player2), empty, piece(player2), empty, empty, empty, empty],
        [empty, piece(player2), empty, empty, empty, empty, empty],
@@ -148,9 +148,9 @@ A stack may contain **no more than two pieces** at any given time.
        [empty, empty, empty, empty, empty, empty, empty],
        [empty, empty, empty, empty, empty, empty, empty],
        [empty, empty, empty, empty, empty, empty, empty]]
-     ```
+   
 
-      ```prolog
+     
                  Player *white* Playing
                                           
           |  1 |  2 |  3 |  4 |  5 |  6 |  7 |
@@ -198,11 +198,11 @@ A stack may contain **no more than two pieces** at any given time.
         1 |  . |  . |  . |  . |  . |  . |  . | 
       ____|____|____|____|____|____|____|____|
 
-      ```
+   ```
 
-      #### Final state
+  #### Final state
 
-      ```
+   ```prolog
         [[empty, stack(player2, 2), empty, empty, stack(player1, 2), empty, piece(player1)],
           [empty, empty, stack(player2, 2), empty, stack(player1, 2), empty, empty],
           [empty, stack(player2, 2), stack(player1, 2), empty, empty, empty, empty],
@@ -210,9 +210,8 @@ A stack may contain **no more than two pieces** at any given time.
           [empty, empty, empty, empty, empty, empty, empty],
           [empty, empty, empty, empty, empty, empty, empty],
           [empty, empty, empty, empty, empty, empty, empty]]
-     ```
+   
 
-      ```prolog
   
                   Player *white* Playing
                                           
@@ -235,7 +234,7 @@ A stack may contain **no more than two pieces** at any given time.
 
       Game over! Winner: white
       true ? yes
-      ```
+   ```
   
      
   - **Turn**: Indicates the current player (`player1` or `player2`).
