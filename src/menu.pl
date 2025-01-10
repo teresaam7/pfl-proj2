@@ -53,29 +53,83 @@ validate_board_size(_) :-
     write('Board size must be between 5 and 30. Please try again.'), nl,
     get_valid_board_size.
 
-% Modified show_game_options to include board size
+% Display an intermediate state
+intermediate_state_1(State, black) :-
+    State = [[white, black, white, empty, empty, empty, empty],
+             [empty, white, empty, empty, empty, empty, empty],
+             [white, black, black, empty, empty, empty, empty],
+             [empty, empty, empty, empty, empty, empty, empty],
+             [empty, empty, empty, empty, empty, empty, empty],
+             [empty, empty, empty, empty, empty, empty, empty],
+             [empty, empty, empty, empty, empty, empty, empty]].
+
+% Display a near-final state where black is almost winning
+near_final_state_1(State, white) :-
+    State = [[white, black, empty, empty, empty, empty, empty],
+             [empty, empty, empty, empty, empty, empty, empty],
+             [8, black, black, empty, empty, empty, empty],
+             [empty, empty, empty, empty, empty, empty, empty],
+             [empty, empty, empty, empty, empty, empty, empty],
+             [empty, empty, empty, empty, empty, empty, empty],
+             [empty, empty, empty, empty, empty, empty, empty]].
+
+
+% Final state where white has won by forming a horizontal line of 3 pieces
+final_state_white_victory(State, white) :-
+    State = [[white, black, empty, empty, empty, empty, empty],
+             [empty, empty, empty, empty, empty, empty, empty],
+             [8,     empty, empty,     x, empty, empty, empty],
+             [empty, 8    , black,     x, empty, empty, empty],
+             [empty, empty,     8, empty, black, empty, empty],
+             [empty, empty, white, empty, empty, empty, empty],
+             [empty, empty, black, empty, empty, empty, empty]].
+
+
+% Show game options with updated intermediate state handling
 show_game_options(Size) :-
-    nl,nl,
-    write('\e[33m+------------------------------------------------------------------------+\e[0m'),nl,
-    write('\e[33m|                                                                        |\e[0m'),nl,
-    write('\e[33m|                      1) Human vs Human                                 |\e[0m'),nl,
-    write('\e[33m|                      2) Human vs Computer                              |\e[0m'),nl,
-    write('\e[33m|                      3) Computer vs Computer                           |\e[0m'),nl,
-    write('\e[33m|                      4) Exit                                           |\e[0m'),nl,
-    write('\e[33m|                                                                        |\e[0m'),nl,
-    write('\e[33m|                      --INSERT OPTION--                                 |\e[0m'),nl,
-    write('\e[33m|                                                                        |\e[0m'),nl,
-    write('\e[33m+------------------------------------------------------------------------+\e[0m'),nl,nl,
-    write('\e[37mEnter your choice: \e[0m'),
+    nl, nl,
+    write('\e[33m+------------------------------------------------------------------------+\e[0m'), nl,
+    write('\e[33m|                                                                        |\e[0m'), nl,
+    write('\e[33m|                      1) Player vs Player                               |\e[0m'), nl,
+    write('\e[33m|                      2) Player vs Computer                             |\e[0m'), nl,
+    write('\e[33m|                      3) Computer vs Computer                           |\e[0m'), nl,
+    write('\e[33m|                      4) Show intermediate state 1                      |\e[0m'), nl,
+    write('\e[33m|                      5) After finding line of 3 (white)                |\e[0m'), nl,
+    write('\e[33m|                      6) Show final state (White wins)                  |\e[0m'), nl,
+    write('\e[33m|                      7) Exit                                           |\e[0m'), nl,
+    write('\e[33m|                                                                        |\e[0m'), nl,
+    write('\e[33m|                      --ENTER OPTION--                                  |\e[0m'), nl,
+    write('\e[33m|                                                                        |\e[0m'), nl,
+    write('\e[33m+------------------------------------------------------------------------+\e[0m'), nl, nl,
+    write('\e[37mEnter your option: \e[0m'),
     read(Choice),
     handle_menu_choice(Choice, Size).
 
-% Modified handle_menu_choice to include board size
+% Handle menu option selection
 handle_menu_choice(1, Size) :- start_game(human, human, Size).
 handle_menu_choice(2, Size) :- select_difficulty(Difficulty), start_game(human, computer(Difficulty), Size).
 handle_menu_choice(3, Size) :- select_difficulty(D1), select_difficulty(D2), start_game(computer(D1), computer(D2), Size).
-handle_menu_choice(4, _) :- nl, write('Exiting game. Goodbye!'), nl.
-handle_menu_choice(_, Size) :- nl, write('Invalid choice, try again.'), nl, show_game_options(Size).
+handle_menu_choice(4, _) :- 
+    intermediate_state_1(State, black),
+    write('Showing intermediate state 1:'), nl,
+    display_game(state(State, black)),
+    write('Enter your move as (Row, Col): |: (1, 3).'), nl,
+    write('Lines of three found: [[(3,1),(2,2),(1,3)]]'), nl,
+    write('Enter position to stack (e.g., (Rs, Cs)) : (3, 1)'),nl,
+    show_game_options(7).
+handle_menu_choice(5, _) :- 
+    near_final_state_1(State, white),
+    write('Showing after finding line of 3 state:'), nl,
+    display_game(state(State, white)),
+    show_game_options(7).
+handle_menu_choice(6, _) :- 
+    final_state_white_victory(State, white),
+    write('Showing final state (White wins):'), nl,
+    display_game(state(State, white)),
+    nl, write('Game over! Winner: white'), nl,
+    show_game_options(7).
+handle_menu_choice(7, _) :- nl, write('Exiting the game. See you later!'), nl.
+handle_menu_choice(_, Size) :- nl, write('Invalid option, please try again.'), nl, show_game_options(Size).
 
 
 % Difficulty selection
@@ -104,4 +158,5 @@ validate_difficulty(2, 2) :-
 validate_difficulty(_, Difficulty) :-
     nl, write('Invalid choice. Please select 1 (Easy) or 2 (Hard).'), nl,
     select_difficulty(Difficulty).
+    
 
